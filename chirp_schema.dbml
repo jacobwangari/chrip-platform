@@ -1,0 +1,213 @@
+// ============================================================
+// CHIRP — Database Schema
+// X (Twitter) Clone — Portfolio / Engineering Refresh Project
+// ============================================================
+// Grouped by Django app (bounded context):
+//   accounts/       -> User, Follow
+//   tweets/         -> Tweet, Media, Like, Bookmark, Hashtag, TweetHashtag, Mention
+//   notifications/  -> Notification
+//
+// Paste into https://dbdiagram.io to visualize.
+// ============================================================
+
+
+// ============================================================
+// APP: accounts
+// ============================================================
+
+Table User {
+  id            bigint       [pk, increment]
+  username      varchar(30)  [not null, unique]
+  email         varchar(255) [not null, unique]
+  password_hash varchar(255) [not null]
+  display_name  varchar(50)  [not null]
+  bio           varchar(160)
+  avatar_url    varchar(500)
+  banner_url    varchar(500)
+  location      varchar(100)
+  website       varchar(255)
+  is_verified   boolean      [not null, default: false]
+  is_active     boolean      [not null, default: true]
+  last_login    timestamp
+  created_at    timestamp    [not null, default: `now()`]
+  updated_at    timestamp    [not null, default: `now()`]
+
+  Note: '''
+    username: handle, e.g. @jacob — unique, immutable-ish
+    display_name: shown name, e.g. "Jacob Mwangi" — mutable, not unique
+  '''
+}
+
+Table Follow {
+  id           bigint    [pk, increment]
+  follower_id  bigint    [not null, ref: > User.id]
+  following_id bigint    [not null, ref: > User.id]
+  created_at   timestamp [not null, default: `now()`]
+
+  Indexes {
+    (follower_id, following_id) [unique, name: 'uq_follow_pair']
+    follower_id  [name: 'ix_follow_follower']
+    following_id [name: 'ix_follow_following']
+  }
+
+  Note: '''
+    Self-follow (follower_id = following_id) must be rejected at the
+    application/serializer layer, or via a DB CHECK constraint if the
+    target DB supports it (Postgres: CHECK (follower_id <> following_id)).
+  '''
+}
+
+
+// ============================================================
+// APP: tweets
+// ============================================================
+
+Table Tweet {
+  id             bigint      [pk, increment]
+  author_id      bigint      [not null, ref: > User.id]
+  content        varchar(280)
+  visibility     varchar(20) [not null, default: 'PUBLIC']
+  parent_id      bigint      [ref: > Tweet.id]
+  retweet_of_id  bigint      [ref: > Tweet.id]
+  created_at     timestamp   [not null, default: `now()`]
+  updated_at     timestamp   [not null, default: `now()`]
+  deleted_at     timestamp
+
+  Indexes {
+    (author_id, created_at) [name: 'ix_tweet_author_timeline']
+    parent_id               [name: 'ix_tweet_parent']
+    retweet_of_id            [name: 'ix_tweet_retweet_of']
+  }
+
+  Note: '''
+    visibility: enum-like, values PUBLIC | FOLLOWERS.
+    Only PUBLIC is enforced in this project's scope; FOLLOWERS is
+    scaffolded in the schema but not enforced in query logic yet.
+
+    Retweets are Tweet rows with retweet_of_id set (self-referential FK)
+    instead of a separate Retweet table — keeps timeline queries to a
+    single filter rather than a UNION across tables.
+
+    Soft delete via deleted_at instead of hard delete, so replies to a
+    deleted tweet can render a placeholder instead of orphaning.
+
+    Counts (like_count, retweet_count, reply_count) are intentionally
+    NOT stored here yet — computed at read time via aggregate queries.
+    See docs/Decisions.md for the denormalization tradeoff.
+  '''
+}
+
+Table Media {
+  id          bigint      [pk, increment]
+  tweet_id    bigint      [not null, ref: > Tweet.id]
+  url         varchar(500) [not null]
+  media_type  varchar(20) [not null]
+  position    smallint    [not null, default: 0]
+  created_at  timestamp   [not null, default: `now()`]
+
+  Indexes {
+    tweet_id [name: 'ix_media_tweet']
+  }
+
+  Note: '''
+    media_type: IMAGE | GIF | VIDEO
+    position: ordering when a tweet has multiple media items
+    Introduced now (rather than a single image_url column on Tweet)
+    so multi-image/video support doesn't require a later migration.
+  '''
+}
+
+Table Like {
+  id         bigint    [pk, increment]
+  user_id    bigint    [not null, ref: > User.id]
+  tweet_id   bigint    [not null, ref: > Tweet.id]
+  created_at timestamp [not null, default: `now()`]
+
+  Indexes {
+    (user_id, tweet_id) [unique, name: 'uq_like_pair']
+    tweet_id [name: 'ix_like_tweet']
+  }
+}
+
+Table Bookmark {
+  id         bigint    [pk, increment]
+  user_id    bigint    [not null, ref: > User.id]
+  tweet_id   bigint    [not null, ref: > Tweet.id]
+  created_at timestamp [not null, default: `now()`]
+
+  Indexes {
+    (user_id, tweet_id) [unique, name: 'uq_bookmark_pair']
+    user_id [name: 'ix_bookmark_user']
+  }
+
+  Note: 'Not necessarily exposed in the UI — included to demonstrate relationship modeling.'
+}
+
+Table Hashtag {
+  id         bigint      [pk, increment]
+  tag        varchar(100) [not null, unique]
+  created_at timestamp   [not null, default: `now()`]
+
+  Note: 'tag stored lowercase for case-insensitive lookups.'
+}
+
+Table TweetHashtag {
+  tweet_id   bigint [not null, ref: > Tweet.id]
+  hashtag_id bigint [not null, ref: > Hashtag.id]
+
+  Indexes {
+    (tweet_id, hashtag_id) [pk]
+    hashtag_id [name: 'ix_tweethashtag_hashtag']
+  }
+
+  Note: 'Join table — no created_at/updated_at, rows are immutable once created.'
+}
+
+Table Mention {
+  tweet_id          bigint [not null, ref: > Tweet.id]
+  mentioned_user_id bigint [not null, ref: > User.id]
+
+  Indexes {
+    (tweet_id, mentioned_user_id) [pk]
+    mentioned_user_id [name: 'ix_mention_user']
+  }
+
+  Note: '''
+    Join table — no created_at/updated_at.
+    mentioned_user_id index supports "tweets mentioning me" lookups.
+  '''
+}
+
+
+// ============================================================
+// APP: notifications
+// ============================================================
+
+Table Notification {
+  id              bigint      [pk, increment]
+  recipient_id    bigint      [not null, ref: > User.id]
+  actor_id        bigint      [not null, ref: > User.id]
+  type            varchar(20) [not null]
+  target_tweet_id bigint      [ref: > Tweet.id]
+  is_read         boolean     [not null, default: false]
+  created_at      timestamp   [not null, default: `now()`]
+
+  Indexes {
+    (recipient_id, is_read) [name: 'ix_notification_inbox']
+    (recipient_id, created_at) [name: 'ix_notification_recent']
+  }
+
+  Note: '''
+    type: enum-like, values LIKE | RETWEET | FOLLOW | REPLY | MENTION
+    Named "type" rather than "verb" to map cleanly onto an enum/choices field.
+  '''
+}
+
+
+// ============================================================
+// Notes on deliberately omitted tables
+// ============================================================
+// - RefreshToken blacklist (OutstandingToken / BlacklistedToken):
+//   provided automatically by rest_framework_simplejwt.token_blacklist
+//   as installed-app migrations — not modeled manually here.
+// ============================================================
