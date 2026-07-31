@@ -1,0 +1,76 @@
+# ============================================================
+# Chirp — .gitignore
+# Covers: Django backend, Flutter mobile, Docker, editors, OS
+# ============================================================
+
+# ---------- Secrets / environment ----------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ---------- Python / Django ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv/
+*.egg-info/
+.eggs/
+db.sqlite3
+db.sqlite3-journal
+/staticfiles/
+/media/
+celerybeat-schedule
+celerybeat.pid
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# ---------- Flutter / Dart ----------
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/.pub-cache/
+mobile/.pub/
+mobile/build/
+mobile/ios/Pods/
+mobile/ios/Flutter/Flutter.framework
+mobile/ios/Flutter/Flutter.podspec
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/android/key.properties
+mobile/**/*.iml
+mobile/**/*.ipr
+mobile/**/*.iws
+mobile/.flutter-versions
+
+# Flutter generated files
+**/generated_plugin_registrant.dart
+**/*.g.dart
+**/*.freezed.dart
+
+# ---------- Docker ----------
+docker-compose.override.yml
+
+# ---------- Editors / IDEs ----------
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
+
+# ---------- Logs ----------
+*.log
+logs/
