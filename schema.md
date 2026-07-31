@@ -280,10 +280,3 @@ Hashtag ──< TweetHashtag.hashtag_id
 
 ---
 
-## Deliberately Omitted Tables
-
-- **Refresh token blacklist** (`OutstandingToken` / `BlacklistedToken`) — provided automatically by `rest_framework_simplejwt.token_blacklist` as installed-app migrations; not modeled manually in this schema.
-
----
-
-*Generated from `schema.dbml`. To regenerate the visual ER diagram, paste the DBML source into [dbdiagram.io](https://dbdiagram.io).*
