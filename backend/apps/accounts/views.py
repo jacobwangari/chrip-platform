@@ -2,11 +2,12 @@ from django.contrib.auth import get_user_model
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from drf_spectacular.utils import extend_schema
 
-from .serializers import RegisterSerializer, UpdateProfileSerializer, UserSerializer
+from .serializers import LogoutSerializer, RegisterSerializer, UpdateProfileSerializer, UserSerializer
 
 User = get_user_model()
 
@@ -54,6 +55,32 @@ class RefreshView(TokenRefreshView):
     POST /api/auth/refresh/
     """
     permission_classes = [permissions.AllowAny]
+
+
+class LogoutView(APIView):
+    """
+    POST /api/auth/logout/
+    Blacklists the given refresh token so it can no longer be used to
+    obtain new access tokens. The client is still responsible for
+    discarding its locally stored access/refresh tokens.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(request=LogoutSerializer, responses={205: None})
+    def post(self, request):
+        serializer = LogoutSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            token = RefreshToken(serializer.validated_data['refresh'])
+            token.blacklist()
+        except TokenError:
+            return Response(
+                {'detail': 'Invalid or already blacklisted refresh token.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(status=status.HTTP_205_RESET_CONTENT)
 
 
 class MeView(APIView):
