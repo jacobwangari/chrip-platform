@@ -1,0 +1,77 @@
+from rest_framework import serializers
+
+from apps.accounts.serializers import UserSerializer
+
+from .models import Tweet
+
+
+class TweetSerializer(serializers.ModelSerializer):
+    """Read representation — nests a lightweight author so the client
+    doesn't need a second call per tweet to render a feed."""
+
+    author = UserSerializer(read_only=True)
+    reply_count = serializers.SerializerMethodField()
+    retweet_count = serializers.SerializerMethodField()
+    is_retweet = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Tweet
+        fields = (
+            'id',
+            'author',
+            'content',
+            'visibility',
+            'parent',
+            'retweet_of',
+            'is_retweet',
+            'reply_count',
+            'retweet_count',
+            'created_at',
+            'updated_at',
+        )
+        read_only_fields = fields
+
+    def get_reply_count(self, obj):
+        # Computed at read time rather than denormalized — see
+        # docs/Decisions.md for the tradeoff. Excludes soft-deleted replies.
+        return obj.replies.filter(deleted_at__isnull=True).count()
+
+    def get_retweet_count(self, obj):
+        return obj.retweets.filter(deleted_at__isnull=True).count()
+
+    def get_is_retweet(self, obj):
+        return obj.retweet_of_id is not None
+
+
+class TweetCreateSerializer(serializers.ModelSerializer):
+    """Write representation — accepts either original content, a reply
+    (via parent), or a retweet (via retweet_of), not several at once."""
+
+    class Meta:
+        model = Tweet
+        fields = ('content', 'visibility', 'parent', 'retweet_of')
+
+    def validate(self, attrs):
+        content = attrs.get('content', '').strip()
+        retweet_of = attrs.get('retweet_of')
+
+        if retweet_of and content:
+            raise serializers.ValidationError(
+                'A retweet cannot also have its own content — use quote tweets for that (not supported yet).'
+            )
+
+        if not retweet_of and not content:
+            raise serializers.ValidationError('Tweet content cannot be empty.')
+
+        if retweet_of and retweet_of.deleted_at is not None:
+            raise serializers.ValidationError('Cannot retweet a deleted tweet.')
+
+        parent = attrs.get('parent')
+        if parent and parent.deleted_at is not None:
+            raise serializers.ValidationError('Cannot reply to a deleted tweet.')
+
+        return attrs
+
+    def create(self, validated_data):
+        validated_data['author'] = self.context['request'].user
+        return super().create(validated_data)
