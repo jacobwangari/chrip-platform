@@ -1,43 +1,88 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../shared/widgets/tweet_card.dart';
 import '../../authentication/domain/auth_controller.dart';
+import '../domain/tweet_controller.dart';
+import 'compose_screen.dart';
 
-/// Placeholder dashboard screen — just enough to prove the authenticated
-/// state (and /me/ data) round-trips correctly. Replace with the real
-/// timeline once the Tweet endpoints exist.
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final auth = Get.find<AuthController>();
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
 
+class _DashboardScreenState extends State<DashboardScreen> {
+  final _auth = Get.find<AuthController>();
+  final _tweets = Get.put(TweetController());
+  final _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(() {
+      final nearBottom = _scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 300;
+      if (nearBottom) _tweets.fetchMore();
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Chirp'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () => auth.logout(),
+            onPressed: () => _auth.logout(),
           ),
         ],
       ),
-      body: Center(
-        child: Obx(() {
-          final user = auth.currentUser.value;
-          if (user == null) return const CircularProgressIndicator();
+      body: Obx(() {
+        if (_tweets.isLoading.value && _tweets.tweets.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-          return Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('Welcome, ${user.displayName}',
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Text('@${user.username}'),
-            ],
-          );
-        }),
+        if (_tweets.tweets.isEmpty) {
+          return const Center(child: Text('No tweets yet — be the first to post.'));
+        }
+
+        return RefreshIndicator(
+          onRefresh: _tweets.refresh,
+          child: ListView.builder(
+            controller: _scrollController,
+            itemCount: _tweets.tweets.length + (_tweets.hasMore ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index >= _tweets.tweets.length) {
+                return const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                );
+              }
+
+              final tweet = _tweets.tweets[index];
+              final isOwnTweet = tweet.author.id == _auth.currentUser.value?.id;
+
+              return TweetCard(
+                tweet: tweet,
+                isOwnTweet: isOwnTweet,
+                onDelete: isOwnTweet ? () => _tweets.deleteTweet(tweet.id) : null,
+              );
+            },
+          ),
+        );
+      }),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Get.to(() => const ComposeScreen()),
+        child: const Icon(Icons.add),
       ),
     );
   }
