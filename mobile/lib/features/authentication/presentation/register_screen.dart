@@ -21,6 +21,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _auth = Get.find<AuthController>();
 
   @override
+  void initState() {
+    super.initState();
+    _auth.clearError();
+  }
+
+  @override
   void dispose() {
     _usernameController.dispose();
     _displayNameController.dispose();

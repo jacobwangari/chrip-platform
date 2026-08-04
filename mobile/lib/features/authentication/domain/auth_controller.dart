@@ -78,6 +78,14 @@ class AuthController extends GetxController {
     status.value = AuthStatus.unauthenticated;
   }
 
+  /// Clears any leftover error from a previous form/attempt. Called
+  /// whenever a screen using this shared error state is entered, so
+  /// a login failure doesn't "leak" into the register screen (or vice
+  /// versa) since AuthController is a single app-wide instance.
+  void clearError() {
+    errorMessage.value = '';
+  }
+
   /// Wired to DioClient.onAuthExpired so a failed refresh (e.g. expired
   /// or blacklisted refresh token) forces the UI back to the login screen.
   void handleForcedLogout() {

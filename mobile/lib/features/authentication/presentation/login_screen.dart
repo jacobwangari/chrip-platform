@@ -20,6 +20,14 @@ class _LoginScreenState extends State<LoginScreen> {
   final _auth = Get.find<AuthController>();
 
   @override
+  void initState() {
+    super.initState();
+    // Clear any leftover error from a previous screen/attempt — see
+    // AuthController.clearError for why this is needed.
+    _auth.clearError();
+  }
+
+  @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
