@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     # Local apps
     'apps.accounts',
     'apps.tweets',
+    'apps.common',
 ]
 
 MIDDLEWARE = [
@@ -153,9 +154,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.CursorPagination',
-    'PAGE_SIZE': 20,
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_PAGINATION_CLASS': 'apps.common.pagination.CreatedAtCursorPagination',
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 
 }
@@ -196,7 +195,5 @@ CORS_ALLOWED_ORIGINS = env(
     'http://localhost:3000,http://127.0.0.1:3000'
 ).split(',')
 
-# Flutter dev builds (emulator/simulator/device) often don't send a
-# standard browser Origin header the way CORS_ALLOWED_ORIGINS expects.
-# Fine for local development; tighten before any real deployment.
+
 CORS_ALLOW_ALL_ORIGINS = env_bool('CORS_ALLOW_ALL_ORIGINS', DEBUG)
