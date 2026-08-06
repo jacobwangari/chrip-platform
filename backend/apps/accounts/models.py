@@ -29,12 +29,12 @@ class Follow(models.Model):
         related_name='followers',  # user.followers -> Follow rows where this user is followed
     )
     created_at = models.DateTimeField(auto_now_add=True)
-
+ 
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['follower', 'following'], name='uq_follow_pair'),
             models.CheckConstraint(
-                check=~models.Q(follower=models.F('following')),
+                condition=~models.Q(follower=models.F('following')),
                 name='ck_follow_no_self_follow',
             ),
         ]
@@ -42,10 +42,11 @@ class Follow(models.Model):
             models.Index(fields=['follower'], name='ix_follow_follower'),
             models.Index(fields=['following'], name='ix_follow_following'),
         ]
-
+ 
     def __str__(self):
         return f'{self.follower} -> {self.following}'
-
+ 
     def clean(self):
         if self.follower_id == self.following_id:
             raise ValidationError('A user cannot follow themselves.')
+ 
