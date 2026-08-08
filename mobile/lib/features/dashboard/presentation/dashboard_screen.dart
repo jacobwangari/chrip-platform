@@ -75,6 +75,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 tweet: tweet,
                 isOwnTweet: isOwnTweet,
                 onDelete: isOwnTweet ? () => _tweets.deleteTweet(tweet.id) : null,
+                onToggleLike: () => _tweets.toggleLike(tweet.id),
               );
             },
           ),

@@ -10,6 +10,8 @@ class TweetModel {
   final bool isRetweet;
   final int replyCount;
   final int retweetCount;
+  final int likeCount;
+  final bool isLiked;
   final DateTime createdAt;
 
   TweetModel({
@@ -22,6 +24,8 @@ class TweetModel {
     required this.isRetweet,
     required this.replyCount,
     required this.retweetCount,
+    required this.likeCount,
+    required this.isLiked,
     required this.createdAt,
   });
 
@@ -36,7 +40,27 @@ class TweetModel {
       isRetweet: json['is_retweet'] as bool? ?? false,
       replyCount: json['reply_count'] as int? ?? 0,
       retweetCount: json['retweet_count'] as int? ?? 0,
+      likeCount: json['like_count'] as int? ?? 0,
+      isLiked: json['is_liked'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),
+    );
+  }
+
+  /// Used for optimistic like/unlike UI updates without a refetch.
+  TweetModel copyWith({bool? isLiked, int? likeCount}) {
+    return TweetModel(
+      id: id,
+      author: author,
+      content: content,
+      visibility: visibility,
+      parentId: parentId,
+      retweetOfId: retweetOfId,
+      isRetweet: isRetweet,
+      replyCount: replyCount,
+      retweetCount: retweetCount,
+      likeCount: likeCount ?? this.likeCount,
+      isLiked: isLiked ?? this.isLiked,
+      createdAt: createdAt,
     );
   }
 }

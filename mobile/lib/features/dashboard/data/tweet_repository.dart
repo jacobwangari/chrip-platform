@@ -67,6 +67,24 @@ class TweetRepository {
     }
   }
 
+  Future<TweetModel> likeTweet(int id) async {
+    try {
+      final response = await _dio.post('/tweets/$id/like/');
+      return TweetModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw TweetException(_extractError(e));
+    }
+  }
+
+  Future<TweetModel> unlikeTweet(int id) async {
+    try {
+      final response = await _dio.delete('/tweets/$id/like/');
+      return TweetModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw TweetException(_extractError(e));
+    }
+  }
+
   Future<List<TweetModel>> fetchReplies(int tweetId) async {
     try {
       final response = await _dio.get('/tweets/$tweetId/replies/');

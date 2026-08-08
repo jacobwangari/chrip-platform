@@ -86,4 +86,36 @@ class TweetController extends GetxController {
       errorMessage.value = e.message;
     }
   }
+
+  Future<void> toggleLike(int tweetId) async {
+    final index = tweets.indexWhere((t) => t.id == tweetId);
+    if (index == -1) return;
+
+    final current = tweets[index];
+    final wasLiked = current.isLiked;
+
+    // Optimistic update — flip immediately, revert on failure.
+    tweets[index] = current.copyWith(
+      isLiked: !wasLiked,
+      likeCount: current.likeCount + (wasLiked ? -1 : 1),
+    );
+
+    try {
+      final updated =
+          wasLiked ? await _repository.unlikeTweet(tweetId) : await _repository.likeTweet(tweetId);
+
+      // Guard against the list having changed (e.g. tweet deleted, or
+      // a refresh happened) while the request was in flight.
+      final currentIndex = tweets.indexWhere((t) => t.id == tweetId);
+      if (currentIndex != -1) {
+        tweets[currentIndex] = updated;
+      }
+    } on TweetException catch (e) {
+      final currentIndex = tweets.indexWhere((t) => t.id == tweetId);
+      if (currentIndex != -1) {
+        tweets[currentIndex] = current; // revert to pre-toggle state
+      }
+      errorMessage.value = e.message;
+    }
+  }
 }

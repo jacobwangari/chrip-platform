@@ -10,12 +10,14 @@ class TweetCard extends StatelessWidget {
   final TweetModel tweet;
   final bool isOwnTweet;
   final VoidCallback? onDelete;
+  final VoidCallback? onToggleLike;
 
   const TweetCard({
     super.key,
     required this.tweet,
     this.isOwnTweet = false,
     this.onDelete,
+    this.onToggleLike,
   });
 
   String _relativeTime(DateTime dateTime) {
@@ -91,6 +93,25 @@ class TweetCard extends StatelessWidget {
               Icon(Icons.repeat, size: 16, color: Colors.grey.shade600),
               const SizedBox(width: 4),
               Text('${tweet.retweetCount}', style: TextStyle(color: Colors.grey.shade600)),
+              const SizedBox(width: 24),
+              GestureDetector(
+                onTap: onToggleLike,
+                behavior: HitTestBehavior.opaque,
+                child: Row(
+                  children: [
+                    Icon(
+                      tweet.isLiked ? Icons.favorite : Icons.favorite_border,
+                      size: 16,
+                      color: tweet.isLiked ? Colors.red : Colors.grey.shade600,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${tweet.likeCount}',
+                      style: TextStyle(color: tweet.isLiked ? Colors.red : Colors.grey.shade600),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
           const Divider(height: 24),
