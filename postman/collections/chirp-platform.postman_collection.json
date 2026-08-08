@@ -1,0 +1,597 @@
+{
+  "info": {
+    "_postman_id": "249cc6c6-0981-4eb7-b3e2-8efd070a7b2b",
+    "name": "chirp-platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "cbff5a87-f61d-4389-bce6-26220ff98978",
+                "exec": [
+                  "const json = pm.response.json();\r",
+                  "\r",
+                  "pm.environment.set(\"access_token\", json.access);\r",
+                  "pm.environment.set(\"refresh_token\", json.refresh);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "433c8a06-12ee-410c-b5ab-1ddc87742bf5",
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "id": "d33946e7-493f-4657-b6ad-3649173c8dc3",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"username\": \"john\",\r\n    \"email\": \"john@yahoo.com\",\r\n    \"password\": \"Password123!\",\r\n    \"display_name\": \"John Maina\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Me",
+          "id": "09aac504-fc4a-446f-ab9f-1ae4135bdfa7",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "119212d0-037d-4281-ac9f-dcbfeea726f6",
+                "exec": [
+                  "const json = pm.response.json();\r",
+                  "\r",
+                  "pm.environment.set(\"access_token\", json.access);\r",
+                  "pm.environment.set(\"refresh_token\", json.refresh);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "0cc44484-13e0-4404-8680-5c5da1aad854",
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "id": "bc52e1ad-5e38-403e-b40b-ef94435fe109",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"john@yahoo.com\",\r\n    \"password\": \"Password123!\",\r\n    \"username\":\"jacob\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "e010e8fd-14e7-4714-9a1b-eee5e13d396a",
+                "exec": [
+                  "const json = pm.response.json();\r",
+                  "\r",
+                  "pm.environment.set(\"access_token\", json.access);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "id": "2803cb01-c690-4b05-9675-eabd4a31cadf",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"refresh\": \"{{refresh_token}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/refresh/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "id": "80940e04-b543-4962-ab58-5630549dcec9",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "New Request",
+          "id": "fbc02420-4e4e-46b1-81a8-fcaf10d4b685",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "ede8a306-10cf-4dcb-b8bc-a6cfaaa342e1"
+    },
+    {
+      "name": "Users",
+      "item": [],
+      "id": "67bb5e77-0f1a-4496-afa1-7ac7ea6f3467"
+    },
+    {
+      "name": "Tweets",
+      "item": [
+        {
+          "name": "tweet",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "185832ed-3d97-43fc-8c09-bbe953831ff1",
+                "exec": [
+                  "const json = pm.response.json();\r",
+                  "\r",
+                  "pm.environment.set(\"tweet_id\", json.id);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "id": "b0bc0df8-6591-435e-ad71-ac01cc145683",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"content\": \"Hello Chirp!\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/tweets/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "tweets",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get_feed",
+          "id": "3b58be72-0c62-475d-b958-b2361b36f388",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "",
+                "value": "",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/tweets/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "tweets",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get_single_tweet",
+          "id": "a98773a6-518e-439a-b7d1-4d49e88f7412",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/tweets/{{tweet_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "tweets",
+                "{{tweet_id}}",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "retweet",
+          "id": "c9aefb37-0861-4a04-ae23-4ab96503cce6",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"content\": \"\",\r\n    \"retweet_of\": \"{{tweet_id}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/tweets/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "tweets",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "reply",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "2f34a785-1116-4b5e-b09d-f05a1cad3300",
+                "exec": [
+                  "const json = pm.response.json();\r",
+                  "\r",
+                  "pm.environment.set(\"reply_id\", json.id);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "id": "a4294493-b5d2-4e29-9643-9676c4691ac1",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"content\": \"Nice post!\",\r\n    \"parent\": \"{{tweet_id}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/tweets/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "tweets",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get_reply",
+          "id": "e6b17c7a-eb85-4126-8586-5eebfa7b25af",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/tweets/{{tweet_id}}/replies/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "tweets",
+                "{{tweet_id}}",
+                "replies",
+                ""
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "4546dd6d-082d-4fb1-8436-6d85b83406ce"
+    },
+    {
+      "name": "Likes",
+      "item": [],
+      "id": "4f64beb1-92a0-4f5b-9288-cfd3e9611d05"
+    },
+    {
+      "name": "Notifications",
+      "item": [],
+      "id": "bcf40b99-2695-4fe3-85c8-90adb16e6aea"
+    },
+    {
+      "name": "Search",
+      "item": [],
+      "id": "fa9b9c26-c5be-49aa-85a4-bbe28968dcc3"
+    },
+    {
+      "name": "Follow",
+      "item": [
+        {
+          "name": "get_user",
+          "id": "28e5c7e0-091d-47b0-8cbd-8fce21262d88",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/john/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "john",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "follow",
+          "id": "e14be6a4-974c-44d3-8d71-d5ea2d50e670",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/james/follow/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "james",
+                "follow",
+                ""
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "8d3b0cad-8124-445c-852b-36fdd8e6b040"
+    }
+  ]
+}

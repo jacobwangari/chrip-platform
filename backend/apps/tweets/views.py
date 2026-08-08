@@ -1,6 +1,9 @@
+from django.db.models import Q
 from rest_framework import generics, permissions
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+
+from apps.accounts.models import Follow
 
 from .models import Tweet
 from .serializers import TweetCreateSerializer, TweetSerializer
@@ -8,15 +11,24 @@ from .serializers import TweetCreateSerializer, TweetSerializer
 
 class TweetListCreateView(generics.ListCreateAPIView):
     """
-    GET  /api/tweets/   -> all non-deleted, top-level tweets (no replies),
-                            newest first, cursor-paginated
+    GET  /api/tweets/   -> "following" timeline: tweets from users the
+                            requester follows, plus their own tweets.
+                            Excludes replies (parent__isnull=True) and
+                            soft-deleted tweets. Cursor-paginated.
     POST /api/tweets/   -> create a tweet, reply, or retweet
     """
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        user = self.request.user
+        following_ids = Follow.objects.filter(follower=user).values_list('following_id', flat=True)
+
         return (
-            Tweet.objects.filter(deleted_at__isnull=True, parent__isnull=True)
+            Tweet.objects.filter(
+                Q(author_id__in=following_ids) | Q(author=user),
+                deleted_at__isnull=True,
+                parent__isnull=True,
+            )
             .select_related('author')
         )
 
