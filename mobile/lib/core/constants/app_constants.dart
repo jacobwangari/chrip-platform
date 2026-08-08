@@ -9,5 +9,5 @@ class AppConstants {
 
   // .env keys
   static const apiBaseUrlEnvKey = 'API_BASE_URL';
-  static const defaultApiBaseUrl = 'http://10.0.2.2:8000/api';
+  static const defaultApiBaseUrl = 'http://10.0.2.2:9000/api';
 }

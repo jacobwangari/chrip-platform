@@ -6,34 +6,55 @@ import '../../../shared/widgets/primary_button.dart';
 import '../../authentication/domain/auth_controller.dart';
 import '../domain/profile_controller.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   final String username;
 
   const ProfileScreen({super.key, required this.username});
 
   @override
-  Widget build(BuildContext context) {
-    // Tagged by username so navigating between two different profiles
-    // never reuses stale state from the previous one.
-    final controller = Get.put(ProfileController(username: username), tag: username);
-    final auth = Get.find<AuthController>();
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
 
+class _ProfileScreenState extends State<ProfileScreen> {
+  late final ProfileController _controller;
+  final _auth = Get.find<AuthController>();
+
+  @override
+  void initState() {
+    super.initState();
+    // Tagged by username so navigating between two different profiles
+    // never reuses stale state from the previous one. Created here
+    // (not in build()) so controller setup never runs mid-build.
+    _controller = Get.put(ProfileController(username: widget.username), tag: widget.username);
+  }
+
+  @override
+  void dispose() {
+    // Tagged controllers don't get cleaned up automatically like
+    // route-scoped ones — remove it so repeated profile visits don't
+    // accumulate controllers for every username ever viewed.
+    Get.delete<ProfileController>(tag: widget.username);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('@$username')),
+      appBar: AppBar(title: Text('@${widget.username}')),
       body: Obx(() {
-        if (controller.isLoading.value && controller.user.value == null) {
+        if (_controller.isLoading.value && _controller.user.value == null) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final user = controller.user.value;
+        final user = _controller.user.value;
         if (user == null) {
-          return Center(child: InlineErrorText(message: controller.errorMessage.value));
+          return Center(child: InlineErrorText(message: _controller.errorMessage.value));
         }
 
-        final isOwnProfile = user.id == auth.currentUser.value?.id;
+        final isOwnProfile = user.id == _auth.currentUser.value?.id;
 
         return RefreshIndicator(
-          onRefresh: controller.loadProfile,
+          onRefresh: _controller.loadProfile,
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
@@ -70,14 +91,14 @@ class ProfileScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 20),
-              InlineErrorText(message: controller.errorMessage.value),
+              InlineErrorText(message: _controller.errorMessage.value),
               if (!isOwnProfile)
                 SizedBox(
                   width: double.infinity,
                   child: PrimaryButton(
                     label: user.isFollowing ? 'Unfollow' : 'Follow',
-                    isLoading: controller.isTogglingFollow.value,
-                    onPressed: controller.toggleFollow,
+                    isLoading: _controller.isTogglingFollow.value,
+                    onPressed: _controller.toggleFollow,
                   ),
                 ),
             ],
