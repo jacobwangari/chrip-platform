@@ -1,11 +1,13 @@
 from django.db.models import Q
-from rest_framework import generics, permissions
+from django.shortcuts import get_object_or_404
+from rest_framework import generics, permissions, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.accounts.models import Follow
 
-from .models import Tweet
+from .models import Like, Tweet
 from .serializers import TweetCreateSerializer, TweetSerializer
 
 
@@ -43,7 +45,12 @@ class TweetListCreateView(generics.ListCreateAPIView):
         tweet = serializer.save()
         # Respond with the full read representation, not the write one,
         # so the client immediately has author/counts without a refetch.
-        return Response(TweetSerializer(tweet).data, status=201)
+        # context is required here for is_liked/is_following to resolve
+        # correctly rather than silently defaulting to False.
+        return Response(
+            TweetSerializer(tweet, context={'request': request}).data,
+            status=201,
+        )
 
 
 class TweetDetailView(generics.RetrieveDestroyAPIView):
@@ -78,4 +85,34 @@ class TweetReplyListView(generics.ListAPIView):
             )
             .select_related('author')
             .order_by('created_at')
+        )
+
+
+class LikeToggleView(APIView):
+    """
+    POST   /api/tweets/{id}/like/    -> like this tweet
+    DELETE /api/tweets/{id}/like/    -> unlike this tweet
+    Idempotent, same pattern as FollowToggleView — liking twice is a
+    no-op success rather than an error.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        tweet = get_object_or_404(
+            Tweet.objects.filter(deleted_at__isnull=True), pk=pk
+        )
+        Like.objects.get_or_create(user=request.user, tweet=tweet)
+        return Response(
+            TweetSerializer(tweet, context={'request': request}).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    def delete(self, request, pk):
+        tweet = get_object_or_404(
+            Tweet.objects.filter(deleted_at__isnull=True), pk=pk
+        )
+        Like.objects.filter(user=request.user, tweet=tweet).delete()
+        return Response(
+            TweetSerializer(tweet, context={'request': request}).data,
+            status=status.HTTP_200_OK,
         )

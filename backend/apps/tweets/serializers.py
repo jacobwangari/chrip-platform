@@ -2,17 +2,24 @@ from rest_framework import serializers
 
 from apps.accounts.serializers import UserSerializer
 
-from .models import Tweet
+from .models import Like, Tweet
 
 
 class TweetSerializer(serializers.ModelSerializer):
     """Read representation — nests a lightweight author so the client
-    doesn't need a second call per tweet to render a feed."""
+    doesn't need a second call per tweet to render a feed.
+
+    is_liked requires context={'request': request} to be accurate —
+    same pattern as UserSerializer.is_following. Without it, is_liked
+    silently returns False rather than erroring.
+    """
 
     author = UserSerializer(read_only=True)
     reply_count = serializers.SerializerMethodField()
     retweet_count = serializers.SerializerMethodField()
+    like_count = serializers.SerializerMethodField()
     is_retweet = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
 
     class Meta:
         model = Tweet
@@ -26,6 +33,8 @@ class TweetSerializer(serializers.ModelSerializer):
             'is_retweet',
             'reply_count',
             'retweet_count',
+            'like_count',
+            'is_liked',
             'created_at',
             'updated_at',
         )
@@ -39,8 +48,17 @@ class TweetSerializer(serializers.ModelSerializer):
     def get_retweet_count(self, obj):
         return obj.retweets.filter(deleted_at__isnull=True).count()
 
+    def get_like_count(self, obj):
+        return obj.likes.count()
+
     def get_is_retweet(self, obj):
         return obj.retweet_of_id is not None
+
+    def get_is_liked(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.likes.filter(user=request.user).exists()
 
 
 class TweetCreateSerializer(serializers.ModelSerializer):

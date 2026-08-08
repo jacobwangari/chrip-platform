@@ -589,6 +589,30 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "check_followers",
+          "id": "f8aa6b61-ef40-4cac-979f-54ebd3389f08",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "check_following",
+          "id": "7b3848e8-5d71-4eba-86c9-590cc5c5d4ca",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
         }
       ],
       "id": "8d3b0cad-8124-445c-852b-36fdd8e6b040"
