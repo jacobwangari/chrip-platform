@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import '../../features/dashboard/domain/tweet_model.dart';
+import '../../features/profile/presentation/profile_screen.dart';
 
 /// Displays a single tweet — reused in the feed, replies, and (later)
 /// profile timeline, so tweet layout only needs to be built once.
@@ -33,34 +35,41 @@ class TweetCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundImage:
-                    tweet.author.avatarUrl != null ? NetworkImage(tweet.author.avatarUrl!) : null,
-                child: tweet.author.avatarUrl == null
-                    ? Text(tweet.author.displayName.isNotEmpty
-                        ? tweet.author.displayName[0].toUpperCase()
-                        : '?')
-                    : null,
+              GestureDetector(
+                onTap: () => _openProfile(),
+                child: CircleAvatar(
+                  radius: 20,
+                  backgroundImage: tweet.author.avatarUrl != null
+                      ? NetworkImage(tweet.author.avatarUrl!)
+                      : null,
+                  child: tweet.author.avatarUrl == null
+                      ? Text(tweet.author.displayName.isNotEmpty
+                          ? tweet.author.displayName[0].toUpperCase()
+                          : '?')
+                      : null,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(tweet.author.displayName,
-                            style: const TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(width: 6),
-                        Text('@${tweet.author.username}',
-                            style: TextStyle(color: Colors.grey.shade600)),
-                        const SizedBox(width: 6),
-                        Text('· ${_relativeTime(tweet.createdAt)}',
-                            style: TextStyle(color: Colors.grey.shade600)),
-                      ],
-                    ),
-                  ],
+                child: GestureDetector(
+                  onTap: () => _openProfile(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(tweet.author.displayName,
+                              style: const TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(width: 6),
+                          Text('@${tweet.author.username}',
+                              style: TextStyle(color: Colors.grey.shade600)),
+                          const SizedBox(width: 6),
+                          Text('· ${_relativeTime(tweet.createdAt)}',
+                              style: TextStyle(color: Colors.grey.shade600)),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
               if (isOwnTweet && onDelete != null)
@@ -88,6 +97,10 @@ class TweetCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void _openProfile() {
+    Get.to(() => ProfileScreen(username: tweet.author.username));
   }
 
   void _confirmDelete(BuildContext context) {
