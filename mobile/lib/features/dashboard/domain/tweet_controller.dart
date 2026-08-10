@@ -71,6 +71,22 @@ class TweetController extends GetxController {
     }
   }
 
+  /// [originalTweetId] must point to a true original, never another
+  /// retweet — the backend enforces this and rejects otherwise, so
+  /// callers should pass tweet.retweetOfId when re-sharing something
+  /// that's already a retweet.
+  Future<bool> retweetTweet(int originalTweetId) async {
+    errorMessage.value = '';
+    try {
+      final tweet = await _repository.createTweet(content: '', retweetOfId: originalTweetId);
+      tweets.insert(0, tweet);
+      return true;
+    } on TweetException catch (e) {
+      errorMessage.value = e.message;
+      return false;
+    }
+  }
+
   Future<void> deleteTweet(int id) async {
     // Optimistic removal — revert if the server call fails.
     final index = tweets.indexWhere((t) => t.id == id);

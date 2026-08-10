@@ -76,6 +76,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 isOwnTweet: isOwnTweet,
                 onDelete: isOwnTweet ? () => _tweets.deleteTweet(tweet.id) : null,
                 onToggleLike: () => _tweets.toggleLike(tweet.id),
+                // If this card is already a retweet, retweeting again
+                // must target the original (retweetOfId), never the
+                // retweet row itself — the backend rejects retweeting
+                // a retweet.
+                onRetweet: () => _tweets.retweetTweet(tweet.retweetOfId ?? tweet.id),
               );
             },
           ),

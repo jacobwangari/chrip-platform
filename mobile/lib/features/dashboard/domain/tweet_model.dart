@@ -14,6 +14,14 @@ class TweetModel {
   final bool isLiked;
   final DateTime createdAt;
 
+  // Populated only when isRetweet is true — the tweet actually being
+  // shown in the card. Kept flat (not a nested TweetModel) since the
+  // backend guarantees retweet_of always points to a true original,
+  // never another retweet, so no recursive nesting is needed.
+  final UserModel? originalAuthor;
+  final String? originalContent;
+  final DateTime? originalCreatedAt;
+
   TweetModel({
     required this.id,
     required this.author,
@@ -27,9 +35,14 @@ class TweetModel {
     required this.likeCount,
     required this.isLiked,
     required this.createdAt,
+    this.originalAuthor,
+    this.originalContent,
+    this.originalCreatedAt,
   });
 
   factory TweetModel.fromJson(Map<String, dynamic> json) {
+    final original = json['original_tweet'] as Map<String, dynamic>?;
+
     return TweetModel(
       id: json['id'] as int,
       author: UserModel.fromJson(json['author'] as Map<String, dynamic>),
@@ -43,6 +56,11 @@ class TweetModel {
       likeCount: json['like_count'] as int? ?? 0,
       isLiked: json['is_liked'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),
+      originalAuthor:
+          original != null ? UserModel.fromJson(original['author'] as Map<String, dynamic>) : null,
+      originalContent: original != null ? original['content'] as String? : null,
+      originalCreatedAt:
+          original != null ? DateTime.parse(original['created_at'] as String) : null,
     );
   }
 
@@ -61,6 +79,9 @@ class TweetModel {
       likeCount: likeCount ?? this.likeCount,
       isLiked: isLiked ?? this.isLiked,
       createdAt: createdAt,
+      originalAuthor: originalAuthor,
+      originalContent: originalContent,
+      originalCreatedAt: originalCreatedAt,
     );
   }
 }

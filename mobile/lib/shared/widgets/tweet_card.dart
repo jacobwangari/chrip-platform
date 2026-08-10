@@ -11,6 +11,7 @@ class TweetCard extends StatelessWidget {
   final bool isOwnTweet;
   final VoidCallback? onDelete;
   final VoidCallback? onToggleLike;
+  final VoidCallback? onRetweet;
 
   const TweetCard({
     super.key,
@@ -18,6 +19,7 @@ class TweetCard extends StatelessWidget {
     this.isOwnTweet = false,
     this.onDelete,
     this.onToggleLike,
+    this.onRetweet,
   });
 
   String _relativeTime(DateTime dateTime) {
@@ -30,23 +32,45 @@ class TweetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // For a retweet, the card displays the ORIGINAL tweet's author,
+    // content, and timestamp — the retweet row itself has no content
+    // of its own. Engagement counts (like/reply/retweet) shown below
+    // are still the retweet's own — see docs/Decisions.md.
+    final displayAuthor = tweet.isRetweet ? tweet.originalAuthor! : tweet.author;
+    final displayContent = tweet.isRetweet ? (tweet.originalContent ?? '') : tweet.content;
+    final displayTime = tweet.isRetweet ? tweet.originalCreatedAt! : tweet.createdAt;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (tweet.isRetweet)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6, left: 32),
+              child: Row(
+                children: [
+                  Icon(Icons.repeat, size: 14, color: Colors.grey.shade600),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${tweet.author.displayName} reposted',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
           Row(
             children: [
               GestureDetector(
-                onTap: () => _openProfile(),
+                onTap: () => _openProfile(displayAuthor.username),
                 child: CircleAvatar(
                   radius: 20,
-                  backgroundImage: tweet.author.avatarUrl != null
-                      ? NetworkImage(tweet.author.avatarUrl!)
+                  backgroundImage: displayAuthor.avatarUrl != null
+                      ? NetworkImage(displayAuthor.avatarUrl!)
                       : null,
-                  child: tweet.author.avatarUrl == null
-                      ? Text(tweet.author.displayName.isNotEmpty
-                          ? tweet.author.displayName[0].toUpperCase()
+                  child: displayAuthor.avatarUrl == null
+                      ? Text(displayAuthor.displayName.isNotEmpty
+                          ? displayAuthor.displayName[0].toUpperCase()
                           : '?')
                       : null,
                 ),
@@ -54,19 +78,19 @@ class TweetCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: GestureDetector(
-                  onTap: () => _openProfile(),
+                  onTap: () => _openProfile(displayAuthor.username),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          Text(tweet.author.displayName,
+                          Text(displayAuthor.displayName,
                               style: const TextStyle(fontWeight: FontWeight.bold)),
                           const SizedBox(width: 6),
-                          Text('@${tweet.author.username}',
+                          Text('@${displayAuthor.username}',
                               style: TextStyle(color: Colors.grey.shade600)),
                           const SizedBox(width: 6),
-                          Text('· ${_relativeTime(tweet.createdAt)}',
+                          Text('· ${_relativeTime(displayTime)}',
                               style: TextStyle(color: Colors.grey.shade600)),
                         ],
                       ),
@@ -82,7 +106,7 @@ class TweetCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text(tweet.content, style: const TextStyle(fontSize: 15)),
+          Text(displayContent, style: const TextStyle(fontSize: 15)),
           const SizedBox(height: 10),
           Row(
             children: [
@@ -90,9 +114,17 @@ class TweetCard extends StatelessWidget {
               const SizedBox(width: 4),
               Text('${tweet.replyCount}', style: TextStyle(color: Colors.grey.shade600)),
               const SizedBox(width: 24),
-              Icon(Icons.repeat, size: 16, color: Colors.grey.shade600),
-              const SizedBox(width: 4),
-              Text('${tweet.retweetCount}', style: TextStyle(color: Colors.grey.shade600)),
+              GestureDetector(
+                onTap: onRetweet,
+                behavior: HitTestBehavior.opaque,
+                child: Row(
+                  children: [
+                    Icon(Icons.repeat, size: 16, color: Colors.grey.shade600),
+                    const SizedBox(width: 4),
+                    Text('${tweet.retweetCount}', style: TextStyle(color: Colors.grey.shade600)),
+                  ],
+                ),
+              ),
               const SizedBox(width: 24),
               GestureDetector(
                 onTap: onToggleLike,
@@ -120,8 +152,8 @@ class TweetCard extends StatelessWidget {
     );
   }
 
-  void _openProfile() {
-    Get.to(() => ProfileScreen(username: tweet.author.username));
+  void _openProfile(String username) {
+    Get.to(() => ProfileScreen(username: username));
   }
 
   void _confirmDelete(BuildContext context) {
