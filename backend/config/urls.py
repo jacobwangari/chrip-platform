@@ -12,6 +12,7 @@ urlpatterns = [
     path('api/auth/', include('apps.accounts.accounts_urls')),
     path('api/tweets/', include('apps.tweets.urls')),
     path('api/users/', include((user_urlpatterns, 'accounts'), namespace='users')),
+    path('api/notifications/', include('apps.notifications.urls')),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(
         "api/docs/",

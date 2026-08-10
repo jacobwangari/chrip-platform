@@ -52,6 +52,8 @@ INSTALLED_APPS = [
     'apps.accounts',
     'apps.tweets',
     'apps.common',
+    'apps.notifications',
+
 ]
 
 MIDDLEWARE = [
