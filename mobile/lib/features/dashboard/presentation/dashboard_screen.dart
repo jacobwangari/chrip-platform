@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 
 import '../../../shared/widgets/tweet_card.dart';
 import '../../authentication/domain/auth_controller.dart';
+import '../../notifications/domain/notification_controller.dart';
+import '../../notifications/presentation/notifications_screen.dart';
 import '../domain/tweet_controller.dart';
 import 'compose_screen.dart';
 
@@ -16,11 +18,17 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   final _auth = Get.find<AuthController>();
   final _tweets = Get.put(TweetController());
+  final _notifications = Get.find<NotificationController>();
   final _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    // Real trigger for populating notifications — the controller's own
+    // onInit (in main.dart) skips fetching if there's no token yet, so
+    // this is the actual first fetch once the user is authenticated.
+    _notifications.fetchInitial();
+
     _scrollController.addListener(() {
       final nearBottom = _scrollController.position.pixels >=
           _scrollController.position.maxScrollExtent - 300;
@@ -40,6 +48,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: const Text('Chirp'),
         actions: [
+          Obx(() => Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined),
+                    onPressed: () => Get.to(() => const NotificationsScreen()),
+                  ),
+                  if (_notifications.unreadCount > 0)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                        child: Text(
+                          _notifications.unreadCount > 9 ? '9+' : '${_notifications.unreadCount}',
+                          style: const TextStyle(color: Colors.white, fontSize: 10),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              )),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => _auth.logout(),

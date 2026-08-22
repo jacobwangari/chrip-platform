@@ -7,12 +7,16 @@ import 'core/theme/app_theme.dart';
 import 'features/authentication/domain/auth_controller.dart';
 import 'features/authentication/presentation/login_screen.dart';
 import 'features/dashboard/presentation/dashboard_screen.dart';
+import 'features/notifications/domain/notification_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
 
   Get.put(AuthController());
+  // Registered app-wide (not per-screen) so an unread badge can show
+  // on the dashboard without first opening the notifications screen.
+  Get.put(NotificationController());
   DioClient().onAuthExpired = () => Get.find<AuthController>().handleForcedLogout();
 
   runApp(const ChirpApp());
