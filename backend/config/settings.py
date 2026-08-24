@@ -34,6 +34,12 @@ ALLOWED_HOSTS = env('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 # Application definition
 
 INSTALLED_APPS = [
+    # daphne must be first — this makes Django's `runserver` command
+    # automatically serve under ASGI (so WebSockets work) instead of
+    # the default WSGI-only dev server, without needing a separate
+    # command during development.
+    'daphne',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -42,6 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # Third-party
+    'channels',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
@@ -51,9 +58,7 @@ INSTALLED_APPS = [
     # Local apps
     'apps.accounts',
     'apps.tweets',
-    'apps.common',
     'apps.notifications',
-
 ]
 
 MIDDLEWARE = [
@@ -85,6 +90,24 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
+
+
+# ------------------------------------------------------------------
+# Channels — channel layer backend for routing messages between
+# consumers (e.g. a signal handler pushing a notification to a
+# specific connected user's WebSocket group). Uses the same Redis
+# instance already running via docker-compose for Celery/caching.
+# ------------------------------------------------------------------
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [(env('REDIS_HOST', 'localhost'), int(env('REDIS_PORT', '6379')))],
+        },
+    },
+}
 
 
 # Database
@@ -156,9 +179,9 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
-    'DEFAULT_PAGINATION_CLASS': 'apps.common.pagination.CreatedAtCursorPagination',
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.CursorPagination',
+    'PAGE_SIZE': 20,
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-
 }
 
 
@@ -197,5 +220,7 @@ CORS_ALLOWED_ORIGINS = env(
     'http://localhost:3000,http://127.0.0.1:3000'
 ).split(',')
 
-
+# Flutter dev builds (emulator/simulator/device) often don't send a
+# standard browser Origin header the way CORS_ALLOWED_ORIGINS expects.
+# Fine for local development; tighten before any real deployment.
 CORS_ALLOW_ALL_ORIGINS = env_bool('CORS_ALLOW_ALL_ORIGINS', DEBUG)
