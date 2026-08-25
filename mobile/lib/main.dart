@@ -13,11 +13,25 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
 
-  Get.put(AuthController());
+  final authController = Get.put(AuthController());
   // Registered app-wide (not per-screen) so an unread badge can show
   // on the dashboard without first opening the notifications screen.
-  Get.put(NotificationController());
-  DioClient().onAuthExpired = () => Get.find<AuthController>().handleForcedLogout();
+  final notificationController = Get.put(NotificationController());
+
+  DioClient().onAuthExpired = () => authController.handleForcedLogout();
+
+  // Kept out of AuthController itself (no direct dependency on
+  // NotificationController there) — this reactive listener is the
+  // single place that ties auth state to the notification socket's
+  // lifecycle: connect once authenticated, disconnect otherwise
+  // (covers logout, forced logout, and app startup before login).
+  ever(authController.status, (AuthStatus status) {
+    if (status == AuthStatus.authenticated) {
+      notificationController.connectSocket();
+    } else {
+      notificationController.disconnectSocket();
+    }
+  });
 
   runApp(const ChirpApp());
 }

@@ -24,9 +24,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    // Real trigger for populating notifications — the controller's own
-    // onInit (in main.dart) skips fetching if there's no token yet, so
-    // this is the actual first fetch once the user is authenticated.
+    // Ensures notification history is loaded even if this screen
+    // mounts before the auth-status listener in main.dart has
+    // finished connecting the socket — harmless if it's already
+    // loading/loaded, fetchInitial() just re-fetches.
     _notifications.fetchInitial();
 
     _scrollController.addListener(() {

@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 
 import '../../../core/network/token_storage.dart';
 import '../data/notification_repository.dart';
+import '../data/notification_socket_service.dart';
 import 'notification_model.dart';
 
 /// Registered once in main.dart (like AuthController) rather than
@@ -9,10 +10,12 @@ import 'notification_model.dart';
 /// dashboard without first opening the notifications screen.
 class NotificationController extends GetxController {
   final NotificationRepository _repository = NotificationRepository();
+  final NotificationSocketService _socket = NotificationSocketService();
 
   final RxList<NotificationModel> notifications = <NotificationModel>[].obs;
   final RxBool isLoading = false.obs;
   final RxBool isLoadingMore = false.obs;
+  final RxBool isSocketConnected = false.obs;
   final RxString errorMessage = ''.obs;
 
   String? _nextUrl;
@@ -31,10 +34,49 @@ class NotificationController extends GetxController {
     _fetchIfAuthenticated();
   }
 
+  @override
+  void onClose() {
+    _socket.disconnect();
+    super.onClose();
+  }
+
   Future<void> _fetchIfAuthenticated() async {
     final hasTokens = await TokenStorage.instance.hasTokens;
     if (hasTokens) {
       fetchInitial();
+    }
+  }
+
+  /// Called once auth status becomes authenticated (wired from
+  /// main.dart, reacting to AuthController.status) — opens the live
+  /// notification stream so new events arrive without polling.
+  Future<void> connectSocket() async {
+    final token = await TokenStorage.instance.accessToken;
+    if (token == null) return;
+
+    _socket.connect(
+      accessToken: token,
+      onNotification: _handleIncomingNotification,
+      onError: () => isSocketConnected.value = false,
+      onDone: () => isSocketConnected.value = false,
+    );
+    isSocketConnected.value = true;
+  }
+
+  /// Called on logout (wired from main.dart) — closes the socket so a
+  /// stale connection doesn't keep receiving another user's events
+  /// after switching accounts, and so it doesn't linger after logout.
+  void disconnectSocket() {
+    _socket.disconnect();
+    isSocketConnected.value = false;
+  }
+
+  void _handleIncomingNotification(NotificationModel notification) {
+    // Guard against a duplicate if it somehow arrives both via the
+    // socket and a REST fetch that raced it.
+    final alreadyPresent = notifications.any((n) => n.id == notification.id);
+    if (!alreadyPresent) {
+      notifications.insert(0, notification);
     }
   }
 
