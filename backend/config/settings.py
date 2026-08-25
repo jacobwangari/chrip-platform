@@ -104,7 +104,9 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            'hosts': [(env('REDIS_HOST', 'localhost'), int(env('REDIS_PORT', '6379')))],
+            'hosts': [(env('REDIS_HOST', '127.0.0.1'), int(env('REDIS_PORT', '6379')))],
+            'capacity': 1500,
+            'expiry': 60,
         },
     },
 }
@@ -179,6 +181,12 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    # NOTE: must be the custom class, not rest_framework's own
+    # CursorPagination — DRF's default orders by '-created', which
+    # doesn't exist on our models (they use created_at). This has
+    # regressed silently more than once during other settings.py
+    # edits; if GET /api/tweets/ ever 500s with a FieldError about
+    # 'created', check this line first.
     'DEFAULT_PAGINATION_CLASS': 'apps.common.pagination.CreatedAtCursorPagination',
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
@@ -223,3 +231,18 @@ CORS_ALLOWED_ORIGINS = env(
 # standard browser Origin header the way CORS_ALLOWED_ORIGINS expects.
 # Fine for local development; tighten before any real deployment.
 CORS_ALLOW_ALL_ORIGINS = env_bool('CORS_ALLOW_ALL_ORIGINS', DEBUG)
+
+
+# ------------------------------------------------------------------
+# Media storage — Cloudflare R2 (S3-compatible). Used only to generate
+# presigned upload URLs via boto3 directly (not django-storages'
+# FileField integration) — the client uploads bytes straight to R2,
+# Django never touches the file itself. See docs/Decisions.md.
+# ------------------------------------------------------------------
+
+R2_ACCESS_KEY_ID = env('R2_ACCESS_KEY_ID', '')
+R2_SECRET_ACCESS_KEY = env('R2_SECRET_ACCESS_KEY', '')
+R2_BUCKET_NAME = env('R2_BUCKET_NAME', '')
+R2_ENDPOINT_URL = env('R2_ENDPOINT_URL', '')  # e.g. https://<account_id>.r2.cloudflarestorage.com
+R2_PUBLIC_BASE_URL = env('R2_PUBLIC_BASE_URL', '')  # public dev URL or custom domain for reading objects
+R2_PRESIGNED_URL_EXPIRY_SECONDS = int(env('R2_PRESIGNED_URL_EXPIRY_SECONDS', '300'))

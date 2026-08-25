@@ -58,6 +58,31 @@ class Tweet(models.Model):
         self.deleted_at = timezone.now()
         self.save(update_fields=['deleted_at'])
 
+class Media(models.Model):
+    class MediaType(models.TextChoices):
+        IMAGE = 'IMAGE', 'Image'
+        GIF = 'GIF', 'Gif'
+        VIDEO = 'VIDEO', 'Video'
+
+    tweet = models.ForeignKey(
+        Tweet,
+        on_delete=models.CASCADE,
+        related_name='media',
+    )
+    url = models.URLField(max_length=500)
+    media_type = models.CharField(max_length=20, choices=MediaType.choices)
+    position = models.SmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['position']
+        indexes = [
+            models.Index(fields=['tweet'], name='ix_media_tweet'),
+        ]
+
+    def __str__(self):
+        return f'{self.media_type} on tweet #{self.tweet_id}'
+
 class Like(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
