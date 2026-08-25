@@ -1,5 +1,23 @@
 import '../../authentication/domain/user_model.dart';
 
+class MediaModel {
+  final int id;
+  final String url;
+  final String mediaType; // IMAGE | GIF | VIDEO
+  final int position;
+
+  MediaModel({required this.id, required this.url, required this.mediaType, required this.position});
+
+  factory MediaModel.fromJson(Map<String, dynamic> json) {
+    return MediaModel(
+      id: json['id'] as int,
+      url: json['url'] as String,
+      mediaType: json['media_type'] as String,
+      position: json['position'] as int? ?? 0,
+    );
+  }
+}
+
 class TweetModel {
   final int id;
   final UserModel author;
@@ -13,6 +31,7 @@ class TweetModel {
   final int likeCount;
   final bool isLiked;
   final DateTime createdAt;
+  final List<MediaModel> media;
 
   // Populated only when isRetweet is true — the tweet actually being
   // shown in the card. Kept flat (not a nested TweetModel) since the
@@ -35,6 +54,7 @@ class TweetModel {
     required this.likeCount,
     required this.isLiked,
     required this.createdAt,
+    required this.media,
     this.originalAuthor,
     this.originalContent,
     this.originalCreatedAt,
@@ -56,6 +76,9 @@ class TweetModel {
       likeCount: json['like_count'] as int? ?? 0,
       isLiked: json['is_liked'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),
+      media: (json['media'] as List<dynamic>? ?? [])
+          .map((m) => MediaModel.fromJson(m as Map<String, dynamic>))
+          .toList(),
       originalAuthor:
           original != null ? UserModel.fromJson(original['author'] as Map<String, dynamic>) : null,
       originalContent: original != null ? original['content'] as String? : null,
@@ -79,6 +102,7 @@ class TweetModel {
       likeCount: likeCount ?? this.likeCount,
       isLiked: isLiked ?? this.isLiked,
       createdAt: createdAt,
+      media: media,
       originalAuthor: originalAuthor,
       originalContent: originalContent,
       originalCreatedAt: originalCreatedAt,

@@ -54,13 +54,13 @@ class TweetController extends GetxController {
     }
   }
 
-  Future<bool> postTweet(String content) async {
-    if (content.trim().isEmpty) return false;
+  Future<bool> postTweet(String content, {List<Map<String, String>>? media}) async {
+    if (content.trim().isEmpty && (media == null || media.isEmpty)) return false;
 
     isPosting.value = true;
     errorMessage.value = '';
     try {
-      final tweet = await _repository.createTweet(content: content.trim());
+      final tweet = await _repository.createTweet(content: content.trim(), media: media);
       tweets.insert(0, tweet);
       return true;
     } on TweetException catch (e) {

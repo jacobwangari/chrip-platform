@@ -107,6 +107,23 @@ class TweetCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(displayContent, style: const TextStyle(fontSize: 15)),
+          if (tweet.media.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                tweet.media.first.url,
+                height: 200,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  height: 200,
+                  color: Colors.grey.shade300,
+                  child: const Center(child: Icon(Icons.broken_image_outlined)),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 10),
           Row(
             children: [

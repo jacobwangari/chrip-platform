@@ -46,12 +46,14 @@ class TweetRepository {
     required String content,
     int? parentId,
     int? retweetOfId,
+    List<Map<String, String>>? media,
   }) async {
     try {
       final response = await _dio.post('/tweets/', data: {
         'content': content,
         if (parentId != null) 'parent': parentId,
         if (retweetOfId != null) 'retweet_of': retweetOfId,
+        if (media != null && media.isNotEmpty) 'media': media,
       });
       return TweetModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
