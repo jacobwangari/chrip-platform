@@ -5,6 +5,7 @@ import '../../../shared/widgets/tweet_card.dart';
 import '../../authentication/domain/auth_controller.dart';
 import '../../notifications/domain/notification_controller.dart';
 import '../../notifications/presentation/notifications_screen.dart';
+import '../../profile/presentation/profile_screen.dart';
 import '../domain/tweet_controller.dart';
 import 'compose_screen.dart';
 
@@ -58,6 +59,15 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
       appBar: AppBar(
         title: const Text('Chirp'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            onPressed: () {
+              final username = _auth.currentUser.value?.username;
+              if (username != null) {
+                Get.to(() => ProfileScreen(username: username));
+              }
+            },
+          ),
           Obx(() => Stack(
                 alignment: Alignment.center,
                 children: [

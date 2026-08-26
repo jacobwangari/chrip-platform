@@ -78,6 +78,24 @@ class AuthController extends GetxController {
     status.value = AuthStatus.unauthenticated;
   }
 
+  /// Used by the edit-profile screen. Keeps currentUser in sync
+  /// directly from the response rather than requiring a separate
+  /// fetchMe() call — the /me/ PATCH already returns the full updated
+  /// user.
+  Future<bool> updateProfile(Map<String, dynamic> data) async {
+    isLoading.value = true;
+    errorMessage.value = '';
+    try {
+      currentUser.value = await _repository.updateProfile(data);
+      return true;
+    } on AuthException catch (e) {
+      errorMessage.value = e.message;
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   /// Clears any leftover error from a previous form/attempt. Called
   /// whenever a screen using this shared error state is entered, so
   /// a login failure doesn't "leak" into the register screen (or vice

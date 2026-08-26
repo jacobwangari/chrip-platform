@@ -5,6 +5,7 @@ import '../../../shared/widgets/inline_error_text.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../authentication/domain/auth_controller.dart';
 import '../domain/profile_controller.dart';
+import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String username;
@@ -92,15 +93,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 20),
               InlineErrorText(message: _controller.errorMessage.value),
-              if (!isOwnProfile)
-                SizedBox(
-                  width: double.infinity,
-                  child: PrimaryButton(
-                    label: user.isFollowing ? 'Unfollow' : 'Follow',
-                    isLoading: _controller.isTogglingFollow.value,
-                    onPressed: _controller.toggleFollow,
-                  ),
-                ),
+              SizedBox(
+                width: double.infinity,
+                child: isOwnProfile
+                    ? PrimaryButton(
+                        label: 'Edit Profile',
+                        isLoading: false,
+                        onPressed: () async {
+                          await Get.to(() => const EditProfileScreen());
+                          // Own profile is served from the same user
+                          // data as AuthController.currentUser, so a
+                          // save there won't auto-reflect here unless
+                          // we refetch — cheap, and keeps this screen
+                          // always showing the latest edit on return.
+                          _controller.loadProfile();
+                        },
+                      )
+                    : PrimaryButton(
+                        label: user.isFollowing ? 'Unfollow' : 'Follow',
+                        isLoading: _controller.isTogglingFollow.value,
+                        onPressed: _controller.toggleFollow,
+                      ),
+              ),
             ],
           ),
         );

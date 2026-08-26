@@ -68,6 +68,15 @@ class AuthRepository {
     }
   }
 
+  Future<UserModel> updateProfile(Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.patch('/auth/me/', data: data);
+      return UserModel.fromJson(response.data);
+    } on DioException catch (e) {
+      throw AuthException(_extractError(e));
+    }
+  }
+
   Future<void> logout() async {
     final refresh = await TokenStorage.instance.refreshToken;
     if (refresh != null) {
@@ -82,6 +91,14 @@ class AuthRepository {
   }
 
   String _extractError(DioException e) {
+    // TEMPORARY debug logging — remove once the root cause is found.
+    // ignore: avoid_print
+    print('DioException type: ${e.type}');
+    // ignore: avoid_print
+    print('DioException message: ${e.message}');
+    // ignore: avoid_print
+    print('DioException requestOptions.uri: ${e.requestOptions.uri}');
+
     final data = e.response?.data;
     if (data is Map && data.isNotEmpty) {
       final firstKey = data.keys.first;

@@ -38,22 +38,8 @@ class _ComposeScreenState extends State<ComposeScreen> {
   }
 
   /// Maps a picked file's extension to the content type the backend's
-  /// presigned-upload endpoint accepts — keep this in sync with
-  /// ALLOWED_CONTENT_TYPES in apps/tweets/views_media.py.
-  String? _contentTypeFor(String path) {
-    final ext = path.toLowerCase().split('.').last;
-    switch (ext) {
-      case 'jpg':
-      case 'jpeg':
-        return 'image/jpeg';
-      case 'png':
-        return 'image/png';
-      case 'webp':
-        return 'image/webp';
-      default:
-        return null;
-    }
-  }
+  /// presigned-upload endpoint accepts.
+  String? _contentTypeFor(String path) => MediaRepository.contentTypeForPath(path);
 
   Future<void> _pickImage() async {
     final picked = await _imagePicker.pickImage(source: ImageSource.gallery, imageQuality: 85);

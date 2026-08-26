@@ -6,6 +6,8 @@ class UserModel {
   final String bio;
   final String? avatarUrl;
   final bool isVerified;
+  final String location;
+  final String website;
   final int followerCount;
   final int followingCount;
   final bool isFollowing;
@@ -18,6 +20,8 @@ class UserModel {
     required this.bio,
     required this.avatarUrl,
     required this.isVerified,
+    this.location = '',
+    this.website = '',
     this.followerCount = 0,
     this.followingCount = 0,
     this.isFollowing = false,
@@ -32,6 +36,8 @@ class UserModel {
       bio: json['bio'] as String? ?? '',
       avatarUrl: json['avatar_url'] as String?,
       isVerified: json['is_verified'] as bool? ?? false,
+      location: json['location'] as String? ?? '',
+      website: json['website'] as String? ?? '',
       followerCount: json['follower_count'] as int? ?? 0,
       followingCount: json['following_count'] as int? ?? 0,
       isFollowing: json['is_following'] as bool? ?? false,
@@ -48,6 +54,8 @@ class UserModel {
       bio: bio,
       avatarUrl: avatarUrl,
       isVerified: isVerified,
+      location: location,
+      website: website,
       followerCount: followerCount ?? this.followerCount,
       followingCount: followingCount,
       isFollowing: isFollowing ?? this.isFollowing,

@@ -28,6 +28,25 @@ class MediaRepository {
   // authenticates via the signature baked into the URL itself.
   final Dio _storageDio = Dio();
 
+  /// Maps a picked file's extension to a content type the backend's
+  /// presigned-upload endpoint accepts. Shared by any screen that lets
+  /// the user pick an image (compose, edit profile) — keep in sync
+  /// with ALLOWED_CONTENT_TYPES in apps/tweets/views_media.py.
+  static String? contentTypeForPath(String path) {
+    final ext = path.toLowerCase().split('.').last;
+    switch (ext) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'webp':
+        return 'image/webp';
+      default:
+        return null;
+    }
+  }
+
   Future<PresignedUpload> requestPresignedUpload(String contentType) async {
     try {
       final response = await DioClient().dio.post('/media/presigned-upload/', data: {
