@@ -29,7 +29,7 @@ The emphasis is on:
 - PostgreSQL
 - Redis
 - Simple JWT
-- Cloudflare R2 (S3-compatible storage)
+- MinIO (self-hosted, S3-compatible storage) — Cloudflare R2/AWS S3 compatible via the same code path, see Key Decisions
 - Docker / Docker Compose
 - Daphne
 
@@ -86,37 +86,37 @@ The goal is code that another developer could comfortably maintain.
 ### Phase 2 — Tweets
 - [x] Create Tweet
 - [x] Delete Tweet (soft delete, author-only)
-- [ ] Timeline (currently: all tweets; pending: filter by following)
+- [x] Timeline (filtered by following + own tweets)
 - [x] Pagination (cursor-based)
 - [x] Replies
 
-**Deliverable:** A functional Twitter-like feed. 🚧 In progress — feed, compose, and pagination working on mobile; timeline still needs to filter by `Follow` relationships once that lands.
+**Deliverable:** A functional Twitter-like feed. ✅ Done — end-to-end on backend and mobile, including following-based filtering.
 
 ### Phase 3 — Social Features
 - [x] Follow / Unfollow
-- [ ] Likes
-- [ ] Retweets (backend supports the data model; endpoint/UI not yet built)
+- [x] Likes
+- [x] Retweets (including original-tweet display, retweet-of-a-retweet blocked)
 - [x] User profiles
 - [x] Counts (computed at read time — see Key Decisions)
 
-**Deliverable:** Core social interactions. 🚧 In progress — follow/unfollow backend complete; mobile follow UI and timeline filtering pending.
+**Deliverable:** Core social interactions. ✅ Done — follow, likes, retweets, and profiles all working end-to-end on backend and mobile.
 
 ### Phase 4 — Real-Time
-- Django Channels
-- Redis
-- WebSockets
-- Notifications
-- Live updates
+- [x] Django Channels
+- [x] Redis (channel layer)
+- [x] WebSockets (JWT-authenticated consumer)
+- [x] Notifications (REST + live push via signals)
+- [x] Live updates (mobile socket client, unread badge)
 
-**Deliverable:** Real-time interactions.
+**Deliverable:** Real-time interactions. ✅ Done — likes, follows, replies, and retweets push a live notification to the recipient's device via WebSocket, with a REST fallback for history/pagination.
 
 ### Phase 5 — Media
-- Cloudflare R2
-- Presigned uploads
-- Avatar upload
-- Tweet image upload
+- [x] S3-compatible storage (MinIO locally; R2/S3-compatible via the same code)
+- [x] Presigned uploads
+- [ ] Avatar upload
+- [x] Tweet image upload
 
-**Deliverable:** Direct client uploads without routing files through Django.
+**Deliverable:** Direct client uploads without routing files through Django. ✅ Done for tweet images — client uploads directly to storage via a presigned URL; Django only issues the URL and links the result to the tweet. Avatar upload not yet built (same pattern, smaller scope).
 
 ### Phase 6 — Production Readiness
 - Docker Compose
@@ -247,13 +247,27 @@ A running log of non-obvious architectural choices and why they were made. Full 
 - **Long-lived, app-wide controllers vs. screen-scoped state**: `AuthController` is registered once in `main.dart` and lives for the app's lifetime since auth state is genuinely global. Screen-local concerns (like a shared `errorMessage` briefly leaking between login and signup — see fix history) are a reminder to keep anything screen-local out of a long-lived controller where possible, or explicitly clear it on screen entry.
 - **Tweet feed deletion is optimistic** — removed from local state immediately on delete, re-inserted only if the API call fails. Keeps the UI feeling instant.
 
+### Real-time (Django Channels)
+- **Notification creation is signal-based, not inline in the views.** `apps/notifications/signals.py` listens for `post_save` on `Like`, `Follow`, and `Tweet` (for replies/retweets) rather than `LikeToggleView`/`FollowToggleView`/`TweetListCreateView` each explicitly creating a `Notification`. Decouples `notifications` from `tweets`/`accounts` entirely — neither needs to import it. Trade-off: "what triggers a notification" isn't visible by reading the view that performs the action; you have to know to check `signals.py`.
+- **WebSocket auth is a JWT passed as a query parameter** (`?token=<access>`), not a header — browsers' native WebSocket API can't set custom headers on the handshake, so this is the standard workaround. A custom `JWTAuthMiddleware` validates it and sets `scope['user']` before the connection reaches the consumer.
+- **Each user joins a group scoped to their own id** (`notifications_{user_id}`), so a pushed notification only reaches that specific user's connection(s), not a broadcast.
+- **`redis-py` is pinned below 6.0** — `channels_redis` 4.3.0 is incompatible with `redis-py` 8.x (an untested major-version jump ahead of `channels_redis`'s support matrix), which caused WebSocket connections to crash with a `TimeoutError` shortly after connecting. Diagnosed by isolating Redis/Docker networking as healthy first (a standalone script using the same blocking-read pattern worked fine), narrowing it to the library versions.
+- **No auto-reconnect on the mobile socket client.** If the connection drops (backgrounding, network hiccup), it reconnects on next app open (via the same `AuthController.status` listener that connected it originally), not automatically mid-session. Accepted simplification for this project's scope.
 
+### Media
+- **MinIO (self-hosted via Docker) instead of Cloudflare R2** — R2's free tier requires a card on file; MinIO needs no external account at all and runs alongside the existing Postgres/Redis containers. Both are S3-compatible, so the same `boto3` presigning code works unchanged — switching to real R2/S3 later is purely an `.env` change.
+- **`Media` rows are created atomically with the tweet, not at upload time.** The presigned-upload endpoint only issues a signed URL; no DB row exists until the tweet itself is created with that URL attached. An upload the user abandons never leaves an orphaned `Media` row (though the uploaded object itself would still exist in storage — a known, accepted gap for this scope).
+- **Presigning needs no network connectivity to storage at request time.** Generating a presigned URL is local cryptographic signing — `boto3` never actually connects to MinIO/R2 to do it. This matters for local dev: the URL's host just needs to be reachable by whoever performs the upload (the mobile client), not by the Django backend that signs it.
+- **The storage upload uses a separate, bare `Dio()` instance on mobile, never `DioClient`.** The presigned URL carries its own auth via its signature; running it through the app's normal API client would leak the API's `Authorization` header onto an unrelated storage request and risk the 401-refresh interceptor misfiring on it.
+
+## Docker Strategy
 
 Run every backend dependency through Docker Compose:
 
 - Django
 - PostgreSQL
 - Redis
+- MinIO (S3-compatible media storage)
 - Celery Worker
 - Celery Beat
 - Daphne
@@ -279,4 +293,6 @@ The project will be considered complete when it demonstrates:
 
 ## Status
 
-🚧 Phase 2/3 in progress — auth is complete end-to-end (backend + mobile). Tweet CRUD, replies, and cursor pagination are working on both ends. Follow/unfollow backend is complete; mobile follow UI and following-based timeline filtering are next.
+✅ Phases 1–5 complete end-to-end (backend + mobile): auth, tweets (CRUD, replies, cursor pagination, following-based timeline), social features (follow/unfollow, likes, retweets, profiles), real-time notifications (WebSocket push via Django Channels), and media (presigned direct-to-storage image uploads on tweets).
+
+🚧 Phase 6 — Production Readiness is next: automated tests (currently none), structured logging, a consistent API error-response shape, and deployment documentation. `docs/Decisions.md` also still needs to be written as an actual file — the material exists (see Key Decisions above) but hasn't been consolidated into `docs/` yet.
