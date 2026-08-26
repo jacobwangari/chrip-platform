@@ -53,6 +53,26 @@ class TweetListCreateView(generics.ListCreateAPIView):
         )
 
 
+class DiscoverTweetListView(generics.ListAPIView):
+    """
+    GET /api/tweets/discover/
+    All public, top-level, non-deleted tweets — unfiltered by
+    following. A separate endpoint from TweetListCreateView rather
+    than a query param on it, since "following" and "discover" are
+    two distinct feeds with different caching/scaling characteristics
+    long-term, even though today they share the same serializer and
+    pagination.
+    """
+    serializer_class = TweetSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return (
+            Tweet.objects.filter(deleted_at__isnull=True, parent__isnull=True)
+            .select_related('author')
+        )
+
+
 class TweetDetailView(generics.RetrieveDestroyAPIView):
     """
     GET    /api/tweets/{id}/  -> a single tweet
