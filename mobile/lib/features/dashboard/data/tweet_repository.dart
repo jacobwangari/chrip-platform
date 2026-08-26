@@ -26,11 +26,14 @@ class TweetRepository {
   /// Fetches the first page when [cursorUrl] is null, or the page at
   /// that cursor otherwise. Dio treats an absolute URL as an override
   /// of baseUrl, so passing the raw `next` link straight back in works.
-  Future<TweetPage> fetchTweets({String? cursorUrl}) async {
+  /// [endpoint] selects which feed — '/tweets/' (following) or
+  /// '/tweets/discover/' (unfiltered) — ignored once cursorUrl is set,
+  /// since the cursor URL already encodes the full path.
+  Future<TweetPage> fetchTweets({String? cursorUrl, String endpoint = '/tweets/'}) async {
     try {
       final response = cursorUrl != null
           ? await _dio.get(cursorUrl)
-          : await _dio.get('/tweets/');
+          : await _dio.get(endpoint);
 
       final results = (response.data['results'] as List)
           .map((json) => TweetModel.fromJson(json as Map<String, dynamic>))

@@ -15,31 +15,40 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProviderStateMixin {
   final _auth = Get.find<AuthController>();
-  final _tweets = Get.put(TweetController());
   final _notifications = Get.find<NotificationController>();
-  final _scrollController = ScrollController();
+  late final TabController _tabController;
+
+  // Two independent controllers, tagged so they never share state —
+  // switching tabs never mixes the following feed with the discover
+  // feed, and each keeps its own scroll position and pagination cursor.
+  late final TweetController _followingController;
+  late final TweetController _discoverController;
 
   @override
   void initState() {
     super.initState();
-    // Ensures notification history is loaded even if this screen
-    // mounts before the auth-status listener in main.dart has
-    // finished connecting the socket — harmless if it's already
-    // loading/loaded, fetchInitial() just re-fetches.
-    _notifications.fetchInitial();
+    _tabController = TabController(length: 2, vsync: this);
 
-    _scrollController.addListener(() {
-      final nearBottom = _scrollController.position.pixels >=
-          _scrollController.position.maxScrollExtent - 300;
-      if (nearBottom) _tweets.fetchMore();
-    });
+    _followingController =
+        Get.put(TweetController(feedEndpoint: '/tweets/'), tag: 'following');
+    _discoverController =
+        Get.put(TweetController(feedEndpoint: '/tweets/discover/'), tag: 'discover');
+
+    // Real trigger for populating notifications — see NotificationController
+    // for why onInit alone doesn't fetch at cold start.
+    _notifications.fetchInitial();
   }
 
   @override
   void dispose() {
-    _scrollController.dispose();
+    _tabController.dispose();
+    // Tagged controllers aren't auto-disposed with the route the way
+    // Get.put without a tag sometimes is — remove them explicitly so
+    // leaving the dashboard doesn't leak two feed controllers.
+    Get.delete<TweetController>(tag: 'following');
+    Get.delete<TweetController>(tag: 'discover');
     super.dispose();
   }
 
@@ -78,51 +87,115 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onPressed: () => _auth.logout(),
           ),
         ],
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Following'),
+            Tab(text: 'Discover'),
+          ],
+        ),
       ),
-      body: Obx(() {
-        if (_tweets.isLoading.value && _tweets.tweets.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (_tweets.tweets.isEmpty) {
-          return const Center(child: Text('No tweets yet — be the first to post.'));
-        }
-
-        return RefreshIndicator(
-          onRefresh: _tweets.refresh,
-          child: ListView.builder(
-            controller: _scrollController,
-            itemCount: _tweets.tweets.length + (_tweets.hasMore ? 1 : 0),
-            itemBuilder: (context, index) {
-              if (index >= _tweets.tweets.length) {
-                return const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                );
-              }
-
-              final tweet = _tweets.tweets[index];
-              final isOwnTweet = tweet.author.id == _auth.currentUser.value?.id;
-
-              return TweetCard(
-                tweet: tweet,
-                isOwnTweet: isOwnTweet,
-                onDelete: isOwnTweet ? () => _tweets.deleteTweet(tweet.id) : null,
-                onToggleLike: () => _tweets.toggleLike(tweet.id),
-                // If this card is already a retweet, retweeting again
-                // must target the original (retweetOfId), never the
-                // retweet row itself — the backend rejects retweeting
-                // a retweet.
-                onRetweet: () => _tweets.retweetTweet(tweet.retweetOfId ?? tweet.id),
-              );
-            },
-          ),
-        );
-      }),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _FeedList(controller: _followingController, currentUserId: _auth.currentUser.value?.id),
+          _FeedList(controller: _discoverController, currentUserId: _auth.currentUser.value?.id),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Get.to(() => const ComposeScreen()),
         child: const Icon(Icons.add),
       ),
     );
+  }
+}
+
+/// Extracted so the two tabs render identically without duplicating
+/// the scroll/pagination/empty-state logic — the only thing that
+/// differs between tabs is which TweetController feeds it.
+class _FeedList extends StatefulWidget {
+  final TweetController controller;
+  final int? currentUserId;
+
+  const _FeedList({required this.controller, required this.currentUserId});
+
+  @override
+  State<_FeedList> createState() => _FeedListState();
+}
+
+class _FeedListState extends State<_FeedList> with AutomaticKeepAliveClientMixin {
+  final _scrollController = ScrollController();
+
+  @override
+  bool get wantKeepAlive => true; // preserves scroll position when switching tabs
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(() {
+      final nearBottom = _scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 300;
+      if (nearBottom) widget.controller.fetchMore();
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    final controller = widget.controller;
+
+    return Obx(() {
+      if (controller.isLoading.value && controller.tweets.isEmpty) {
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      if (controller.tweets.isEmpty) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              controller.feedEndpoint == '/tweets/'
+                  ? "No tweets yet — follow someone, or post your first chirp."
+                  : "No tweets yet — be the first to post.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+          ),
+        );
+      }
+
+      return RefreshIndicator(
+        onRefresh: controller.refresh,
+        child: ListView.builder(
+          controller: _scrollController,
+          itemCount: controller.tweets.length + (controller.hasMore ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index >= controller.tweets.length) {
+              return const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              );
+            }
+
+            final tweet = controller.tweets[index];
+            final isOwnTweet = tweet.author.id == widget.currentUserId;
+
+            return TweetCard(
+              tweet: tweet,
+              isOwnTweet: isOwnTweet,
+              onDelete: isOwnTweet ? () => controller.deleteTweet(tweet.id) : null,
+              onToggleLike: () => controller.toggleLike(tweet.id),
+              onRetweet: () => controller.retweetTweet(tweet.retweetOfId ?? tweet.id),
+            );
+          },
+        ),
+      );
+    });
   }
 }

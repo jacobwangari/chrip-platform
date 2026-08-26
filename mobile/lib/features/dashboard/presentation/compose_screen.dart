@@ -18,7 +18,10 @@ class ComposeScreen extends StatefulWidget {
 
 class _ComposeScreenState extends State<ComposeScreen> {
   final _contentController = TextEditingController();
-  final _tweets = Get.find<TweetController>();
+  // A posted tweet always belongs to the 'following' feed (it's your
+  // own content, which that feed always includes) — 'discover' will
+  // pick it up naturally on its next refresh, no explicit insert needed.
+  final _tweets = Get.find<TweetController>(tag: 'following');
   final _mediaRepository = MediaRepository();
   final _imagePicker = ImagePicker();
 

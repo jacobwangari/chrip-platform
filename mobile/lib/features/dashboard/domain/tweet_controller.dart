@@ -6,6 +6,15 @@ import 'tweet_model.dart';
 class TweetController extends GetxController {
   final TweetRepository _repository = TweetRepository();
 
+  /// Which feed this instance serves — '/tweets/' (following) or
+  /// '/tweets/discover/' (unfiltered). Two separate TweetController
+  /// instances (tagged 'following' and 'discover') each own their
+  /// own list, pagination cursor, and loading state — they never
+  /// share state, so switching tabs never mixes the two feeds.
+  final String feedEndpoint;
+
+  TweetController({this.feedEndpoint = '/tweets/'});
+
   final RxList<TweetModel> tweets = <TweetModel>[].obs;
   final RxBool isLoading = false.obs;
   final RxBool isLoadingMore = false.obs;
@@ -25,7 +34,7 @@ class TweetController extends GetxController {
     isLoading.value = true;
     errorMessage.value = '';
     try {
-      final page = await _repository.fetchTweets();
+      final page = await _repository.fetchTweets(endpoint: feedEndpoint);
       tweets.assignAll(page.tweets);
       _nextUrl = page.nextUrl;
     } on TweetException catch (e) {
