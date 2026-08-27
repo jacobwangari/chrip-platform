@@ -10,7 +10,20 @@ import '../data/media_repository.dart';
 import '../domain/tweet_controller.dart';
 
 class ComposeScreen extends StatefulWidget {
-  const ComposeScreen({super.key});
+  /// When set, this screen composes a reply instead of a new top-level
+  /// tweet — the parent's id is sent as `parent`, and the result never
+  /// gets inserted into a feed list (replies aren't shown there).
+  final int? parentId;
+
+  /// Shown in a "Replying to @username" banner when replying.
+  final String? replyingToUsername;
+
+  /// Called once the reply/tweet posts successfully, before popping —
+  /// used by the caller to bump the parent's visible reply count
+  /// locally rather than waiting on a full feed refresh.
+  final VoidCallback? onPosted;
+
+  const ComposeScreen({super.key, this.parentId, this.replyingToUsername, this.onPosted});
 
   @override
   State<ComposeScreen> createState() => _ComposeScreenState();
@@ -18,9 +31,11 @@ class ComposeScreen extends StatefulWidget {
 
 class _ComposeScreenState extends State<ComposeScreen> {
   final _contentController = TextEditingController();
-  // A posted tweet always belongs to the 'following' feed (it's your
-  // own content, which that feed always includes) — 'discover' will
-  // pick it up naturally on its next refresh, no explicit insert needed.
+  // A posted top-level tweet always belongs to the 'following' feed
+  // (it's your own content, which that feed always includes) —
+  // 'discover' will pick it up naturally on its next refresh. Replies
+  // never touch either list, so which tagged instance handles
+  // postReply doesn't matter — it's stateless beyond isPosting/error.
   final _tweets = Get.find<TweetController>(tag: 'following');
   final _mediaRepository = MediaRepository();
   final _imagePicker = ImagePicker();
@@ -31,14 +46,14 @@ class _ComposeScreenState extends State<ComposeScreen> {
   bool _isUploadingImage = false;
   String? _mediaError;
 
+  bool get _isReply => widget.parentId != null;
+
   @override
   void dispose() {
     _contentController.dispose();
     super.dispose();
   }
 
-  /// Maps a picked file's extension to the content type the backend's
-  /// presigned-upload endpoint accepts.
   String? _contentTypeFor(String path) => MediaRepository.contentTypeForPath(path);
 
   Future<void> _pickImage() async {
@@ -83,14 +98,18 @@ class _ComposeScreenState extends State<ComposeScreen> {
           _isUploadingImage = false;
           _mediaError = e.message;
         });
-        return; // don't post the tweet if the image failed to upload
+        return; // don't post if the image failed to upload
       }
 
       setState(() => _isUploadingImage = false);
     }
 
-    final success = await _tweets.postTweet(content, media: media);
+    final success = _isReply
+        ? await _tweets.postReply(content, widget.parentId!, media: media)
+        : await _tweets.postTweet(content, media: media);
+
     if (success && mounted) {
+      widget.onPosted?.call();
       Get.back();
     }
   }
@@ -100,19 +119,27 @@ class _ComposeScreenState extends State<ComposeScreen> {
     final isBusy = _isUploadingImage;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('New tweet')),
+      appBar: AppBar(title: Text(_isReply ? 'Reply' : 'New tweet')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (_isReply && widget.replyingToUsername != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'Replying to @${widget.replyingToUsername}',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                ),
+              ),
             TextField(
               controller: _contentController,
               maxLength: _maxLength,
               maxLines: 6,
               autofocus: true,
-              decoration: const InputDecoration(
-                hintText: "What's happening?",
+              decoration: InputDecoration(
+                hintText: _isReply ? 'Post your reply' : "What's happening?",
                 border: InputBorder.none,
               ),
               onChanged: (_) => setState(() {}),
@@ -157,7 +184,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
             Obx(() => InlineErrorText(message: _tweets.errorMessage.value)),
             const SizedBox(height: 8),
             Obx(() => PrimaryButton(
-                  label: 'Chirp',
+                  label: _isReply ? 'Reply' : 'Chirp',
                   isLoading: _tweets.isPosting.value || _isUploadingImage,
                   onPressed: (_contentController.text.trim().isEmpty && _pickedImage == null)
                       ? null

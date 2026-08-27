@@ -87,8 +87,9 @@ class TweetModel {
     );
   }
 
-  /// Used for optimistic like/unlike UI updates without a refetch.
-  TweetModel copyWith({bool? isLiked, int? likeCount}) {
+  /// Used for optimistic like/unlike and reply-count UI updates
+  /// without a full refetch.
+  TweetModel copyWith({bool? isLiked, int? likeCount, int? replyCount}) {
     return TweetModel(
       id: id,
       author: author,
@@ -97,7 +98,7 @@ class TweetModel {
       parentId: parentId,
       retweetOfId: retweetOfId,
       isRetweet: isRetweet,
-      replyCount: replyCount,
+      replyCount: replyCount ?? this.replyCount,
       retweetCount: retweetCount,
       likeCount: likeCount ?? this.likeCount,
       isLiked: isLiked ?? this.isLiked,

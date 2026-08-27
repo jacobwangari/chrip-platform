@@ -12,6 +12,7 @@ class TweetCard extends StatelessWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onToggleLike;
   final VoidCallback? onRetweet;
+  final VoidCallback? onReply;
 
   const TweetCard({
     super.key,
@@ -20,6 +21,7 @@ class TweetCard extends StatelessWidget {
     this.onDelete,
     this.onToggleLike,
     this.onRetweet,
+    this.onReply,
   });
 
   String _relativeTime(DateTime dateTime) {
@@ -127,9 +129,17 @@ class TweetCard extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              Icon(Icons.chat_bubble_outline, size: 16, color: Colors.grey.shade600),
-              const SizedBox(width: 4),
-              Text('${tweet.replyCount}', style: TextStyle(color: Colors.grey.shade600)),
+              GestureDetector(
+                onTap: onReply,
+                behavior: HitTestBehavior.opaque,
+                child: Row(
+                  children: [
+                    Icon(Icons.chat_bubble_outline, size: 16, color: Colors.grey.shade600),
+                    const SizedBox(width: 4),
+                    Text('${tweet.replyCount}', style: TextStyle(color: Colors.grey.shade600)),
+                  ],
+                ),
+              ),
               const SizedBox(width: 24),
               GestureDetector(
                 onTap: onRetweet,

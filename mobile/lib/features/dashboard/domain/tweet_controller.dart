@@ -96,6 +96,38 @@ class TweetController extends GetxController {
     }
   }
 
+  /// Replies never appear in either feed (the backend excludes them
+  /// via parent__isnull=True), so unlike postTweet/retweetTweet this
+  /// never inserts into `tweets` — the caller (ComposeScreen, via its
+  /// onPosted callback) is responsible for bumping the parent's
+  /// reply_count locally via bumpReplyCount below.
+  Future<bool> postReply(String content, int parentId, {List<Map<String, String>>? media}) async {
+    if (content.trim().isEmpty && (media == null || media.isEmpty)) return false;
+
+    isPosting.value = true;
+    errorMessage.value = '';
+    try {
+      await _repository.createTweet(content: content.trim(), parentId: parentId, media: media);
+      return true;
+    } on TweetException catch (e) {
+      errorMessage.value = e.message;
+      return false;
+    } finally {
+      isPosting.value = false;
+    }
+  }
+
+  /// Called after a successful reply post so the parent tweet's
+  /// visible reply count updates immediately, without waiting for a
+  /// full feed refresh. A no-op if the parent isn't in this
+  /// particular feed instance (e.g. replied to a tweet from the
+  /// 'discover' tab while this is the 'following' controller).
+  void bumpReplyCount(int tweetId) {
+    final index = tweets.indexWhere((t) => t.id == tweetId);
+    if (index == -1) return;
+    tweets[index] = tweets[index].copyWith(replyCount: tweets[index].replyCount + 1);
+  }
+
   Future<void> deleteTweet(int id) async {
     // Optimistic removal — revert if the server call fails.
     final index = tweets.indexWhere((t) => t.id == id);

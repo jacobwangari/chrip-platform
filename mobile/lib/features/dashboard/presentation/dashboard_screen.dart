@@ -202,6 +202,20 @@ class _FeedListState extends State<_FeedList> with AutomaticKeepAliveClientMixin
               onDelete: isOwnTweet ? () => controller.deleteTweet(tweet.id) : null,
               onToggleLike: () => controller.toggleLike(tweet.id),
               onRetweet: () => controller.retweetTweet(tweet.retweetOfId ?? tweet.id),
+              onReply: () {
+                // Reply to the ORIGINAL tweet for a retweet card (there's
+                // nothing meaningful to reply to on the empty retweet
+                // wrapper itself), matching how retweetTweet already
+                // targets tweet.retweetOfId in the same situation.
+                final targetId = tweet.isRetweet ? tweet.retweetOfId! : tweet.id;
+                final targetUsername = tweet.isRetweet ? tweet.originalAuthor!.username : tweet.author.username;
+
+                Get.to(() => ComposeScreen(
+                      parentId: targetId,
+                      replyingToUsername: targetUsername,
+                      onPosted: () => controller.bumpReplyCount(targetId),
+                    ));
+              },
             );
           },
         ),
