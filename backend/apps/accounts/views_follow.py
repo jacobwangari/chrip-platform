@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
 from rest_framework.exceptions import ValidationError
@@ -13,6 +14,39 @@ from .models import Follow
 from .serializers import FollowUserSerializer, UserSerializer
 
 User = get_user_model()
+
+
+class UserSearchView(generics.ListAPIView):
+    """
+    GET /api/users/search/?q=<query>
+    Matches username or display_name (case-insensitive, substring).
+    No pagination — capped at 20 results, since this is a "find
+    people to follow as you type" search, not a browsable list. A
+    ranked/paginated version would need Postgres full-text search
+    with a stable rank-based ordering; plain icontains substring
+    matching is sufficient at this table's size. See docs/Decisions.md.
+
+    is_following on each result resolves automatically — ListAPIView
+    passes {'request': self.request} into the serializer's context
+    via get_serializer_context(), unlike the plain APIViews elsewhere
+    in this app (FollowToggleView etc.) which have to do that manually.
+    """
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        query = self.request.query_params.get('q', '').strip()
+        if not query:
+            return User.objects.none()
+
+        return (
+            User.objects.filter(
+                Q(username__icontains=query) | Q(display_name__icontains=query)
+            )
+            .exclude(id=self.request.user.id)  # searching shouldn't surface yourself
+            .order_by('username')[:20]
+        )
 
 
 class UserDetailView(generics.RetrieveAPIView):

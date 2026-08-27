@@ -1,7 +1,13 @@
 from django.urls import path
 
 from .views import LoginView, LogoutView, MeView, RefreshView, RegisterView
-from .views_follow import FollowersListView, FollowingListView, FollowToggleView, UserDetailView
+from .views_follow import (
+    FollowersListView,
+    FollowingListView,
+    FollowToggleView,
+    UserDetailView,
+    UserSearchView,
+)
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='auth-register'),
@@ -10,8 +16,13 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='auth-logout'),
     path('me/', MeView.as_view(), name='auth-me'),
 ]
+
 # Registered separately under /api/users/ in config/urls.py — see below.
 user_urlpatterns = [
+    # 'search/' MUST come before '<str:username>/' — otherwise Django
+    # matches /api/users/search/ as UserDetailView with username='search'
+    # instead, since URL patterns are tried in order.
+    path('search/', UserSearchView.as_view(), name='user-search'),
     path('<str:username>/', UserDetailView.as_view(), name='user-detail'),
     path('<str:username>/follow/', FollowToggleView.as_view(), name='user-follow-toggle'),
     path('<str:username>/followers/', FollowersListView.as_view(), name='user-followers'),
