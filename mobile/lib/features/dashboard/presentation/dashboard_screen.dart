@@ -8,6 +8,7 @@ import '../../notifications/presentation/notifications_screen.dart';
 import '../../profile/presentation/profile_screen.dart';
 import '../domain/tweet_controller.dart';
 import 'compose_screen.dart';
+import 'tweet_detail_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -215,6 +216,10 @@ class _FeedListState extends State<_FeedList> with AutomaticKeepAliveClientMixin
                       replyingToUsername: targetUsername,
                       onPosted: () => controller.bumpReplyCount(targetId),
                     ));
+              },
+              onOpenDetail: () {
+                final targetId = tweet.isRetweet ? tweet.retweetOfId! : tweet.id;
+                Get.to(() => TweetDetailScreen(tweetId: targetId));
               },
             );
           },

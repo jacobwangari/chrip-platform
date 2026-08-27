@@ -90,12 +90,34 @@ class TweetRepository {
     }
   }
 
-  Future<List<TweetModel>> fetchReplies(int tweetId) async {
+  Future<TweetModel> fetchTweetDetail(int id) async {
     try {
-      final response = await _dio.get('/tweets/$tweetId/replies/');
-      return (response.data['results'] as List)
+      final response = await _dio.get('/tweets/$id/');
+      return TweetModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw TweetException(_extractError(e));
+    }
+  }
+
+  /// Paginated, same shape as fetchTweets — the previous version of
+  /// this method dropped the `next` cursor entirely, silently
+  /// limiting a thread to one page of replies. NOTE: replies come
+  /// back newest-first, not chronological — the shared
+  /// CreatedAtCursorPagination's own order_by('-created_at') call
+  /// overrides the view's .order_by('created_at'), since DRF's
+  /// CursorPagination unconditionally re-orders the queryset. See
+  /// docs/Decisions.md.
+  Future<TweetPage> fetchReplies(int tweetId, {String? cursorUrl}) async {
+    try {
+      final response = cursorUrl != null
+          ? await _dio.get(cursorUrl)
+          : await _dio.get('/tweets/$tweetId/replies/');
+
+      final results = (response.data['results'] as List)
           .map((json) => TweetModel.fromJson(json as Map<String, dynamic>))
           .toList();
+
+      return TweetPage(tweets: results, nextUrl: response.data['next'] as String?);
     } on DioException catch (e) {
       throw TweetException(_extractError(e));
     }

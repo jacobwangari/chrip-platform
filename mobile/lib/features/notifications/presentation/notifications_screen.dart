@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../shared/widgets/inline_error_text.dart';
+import '../../dashboard/presentation/tweet_detail_screen.dart';
 import '../../profile/presentation/profile_screen.dart';
 import '../domain/notification_controller.dart';
 import '../domain/notification_model.dart';
@@ -75,12 +76,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   void _handleTap(NotificationModel notification) {
     _controller.markAsRead(notification.id);
-    // Only FOLLOW notifications have a clear single destination right
-    // now (the actor's profile) — likes/retweets/replies would ideally
-    // open the target tweet, but there's no tweet detail screen yet,
-    // so tapping those just marks them read for now.
+
     if (notification.type == NotificationType.follow) {
       Get.to(() => ProfileScreen(username: notification.actor.username));
+      return;
+    }
+
+    if (notification.targetTweetId != null) {
+      Get.to(() => TweetDetailScreen(tweetId: notification.targetTweetId!));
     }
   }
 
