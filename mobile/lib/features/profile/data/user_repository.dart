@@ -62,6 +62,21 @@ class UserRepository {
     }
   }
 
+  /// GET /users/search/?q=... returns a plain JSON array, NOT the
+  /// usual {results, next} pagination envelope — the backend view
+  /// disables pagination for search (relevance-style ordering isn't
+  /// compatible with cursor pagination's monotonic-field requirement).
+  Future<List<UserModel>> searchUsers(String query) async {
+    try {
+      final response = await _dio.get('/users/search/', queryParameters: {'q': query});
+      return (response.data as List)
+          .map((json) => UserModel.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw UserException(_extractError(e));
+    }
+  }
+
   String _extractError(DioException e) {
     final data = e.response?.data;
     if (data is Map && data.isNotEmpty) {

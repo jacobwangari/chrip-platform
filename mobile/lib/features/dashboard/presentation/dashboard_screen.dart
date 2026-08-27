@@ -6,6 +6,7 @@ import '../../authentication/domain/auth_controller.dart';
 import '../../notifications/domain/notification_controller.dart';
 import '../../notifications/presentation/notifications_screen.dart';
 import '../../profile/presentation/profile_screen.dart';
+import '../../search/presentation/search_screen.dart';
 import '../domain/tweet_controller.dart';
 import 'compose_screen.dart';
 import 'tweet_detail_screen.dart';
@@ -60,6 +61,10 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
       appBar: AppBar(
         title: const Text('Chirp'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () => Get.to(() => const SearchScreen()),
+          ),
           IconButton(
             icon: const Icon(Icons.person_outline),
             onPressed: () {
