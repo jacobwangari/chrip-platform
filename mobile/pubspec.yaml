@@ -36,3 +36,28 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - .env
+# Add this block to mobile/pubspec.yaml, at the top level (same
+# indentation as `dependencies:` and `flutter:`, not nested inside them).
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/logo.png"
+
+  # Android adaptive icons (Android 8+) split the icon into a
+  # foreground image and a background color/image — a fully
+  # transparent PNG on its own becomes the SYSTEM default background
+  # (usually white) behind it, not truly transparent, since Android
+  # always renders something behind the foreground layer.
+  # Pick ONE of the two options below and delete the other:
+
+  # Option A — solid brand color behind the transparent logo (safer,
+  # avoids the logo blending into whatever wallpaper is behind it):
+  adaptive_icon_background: "#1DA1F2"
+  adaptive_icon_foreground: "assets/icon/logo.png"
+
+  # Option B — keep it fully transparent (only if your logo already
+  # looks correct on any background, e.g. it has its own visual
+  # weight/outline):
+  # adaptive_icon_background: "#FFFFFF"
+  # adaptive_icon_foreground: "assets/icon/logo.png"
