@@ -10,6 +10,15 @@ class UserException implements Exception {
   String toString() => message;
 }
 
+/// A page of users plus the cursor URL for the next page, if any —
+/// same shape as TweetPage in the dashboard feature.
+class UserPage {
+  final List<UserModel> users;
+  final String? nextUrl;
+
+  UserPage({required this.users, required this.nextUrl});
+}
+
 class UserRepository {
   final Dio _dio = DioClient().dio;
 
@@ -40,23 +49,30 @@ class UserRepository {
     }
   }
 
-  Future<List<UserModel>> fetchFollowers(String username) async {
+  /// Paginated — the previous version of this method dropped the
+  /// `next` cursor, silently capping the followers list at one page
+  /// (the same bug that fetchReplies had before it was fixed).
+  Future<UserPage> fetchFollowers(String username, {String? cursorUrl}) async {
     try {
-      final response = await _dio.get('/users/$username/followers/');
-      return (response.data['results'] as List)
+      final response =
+          cursorUrl != null ? await _dio.get(cursorUrl) : await _dio.get('/users/$username/followers/');
+      final results = (response.data['results'] as List)
           .map((json) => UserModel.fromJson(json as Map<String, dynamic>))
           .toList();
+      return UserPage(users: results, nextUrl: response.data['next'] as String?);
     } on DioException catch (e) {
       throw UserException(_extractError(e));
     }
   }
 
-  Future<List<UserModel>> fetchFollowing(String username) async {
+  Future<UserPage> fetchFollowing(String username, {String? cursorUrl}) async {
     try {
-      final response = await _dio.get('/users/$username/following/');
-      return (response.data['results'] as List)
+      final response =
+          cursorUrl != null ? await _dio.get(cursorUrl) : await _dio.get('/users/$username/following/');
+      final results = (response.data['results'] as List)
           .map((json) => UserModel.fromJson(json as Map<String, dynamic>))
           .toList();
+      return UserPage(users: results, nextUrl: response.data['next'] as String?);
     } on DioException catch (e) {
       throw UserException(_extractError(e));
     }

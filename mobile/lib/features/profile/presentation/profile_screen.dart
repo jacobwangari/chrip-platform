@@ -1,3 +1,4 @@
+import 'package:chirp_platform/features/profile/domain/follow_list_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -6,6 +7,7 @@ import '../../../shared/widgets/primary_button.dart';
 import '../../authentication/domain/auth_controller.dart';
 import '../domain/profile_controller.dart';
 import 'edit_profile_screen.dart';
+import 'follow_list_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String username;
@@ -80,15 +82,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Text('${user.followingCount}',
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(width: 4),
-                  Text('Following', style: TextStyle(color: Colors.grey.shade600)),
+                  GestureDetector(
+                    onTap: () => Get.to(() => FollowListScreen(
+                          username: widget.username,
+                          mode: FollowListMode.following,
+                        )),
+                    child: Row(
+                      children: [
+                        Text('${user.followingCount}',
+                            style: const TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 4),
+                        Text('Following', style: TextStyle(color: Colors.grey.shade600)),
+                      ],
+                    ),
+                  ),
                   const SizedBox(width: 20),
-                  Text('${user.followerCount}',
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(width: 4),
-                  Text('Followers', style: TextStyle(color: Colors.grey.shade600)),
+                  GestureDetector(
+                    onTap: () => Get.to(() => FollowListScreen(
+                          username: widget.username,
+                          mode: FollowListMode.followers,
+                        )),
+                    child: Row(
+                      children: [
+                        Text('${user.followerCount}',
+                            style: const TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 4),
+                        Text('Followers', style: TextStyle(color: Colors.grey.shade600)),
+                      ],
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 20),
