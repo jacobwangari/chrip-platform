@@ -74,15 +74,13 @@ class FollowToggleView(APIView):
         if target.id == request.user.id:
             raise ValidationError('You cannot follow yourself.')
 
-        follow = Follow(follower=request.user, following=target)
-        try:
-            follow.full_clean()
-            follow.save()
-        except IntegrityError:
-            # Already following — treat as idempotent success rather than an error.
-            pass
-        except DjangoValidationError as e:
-            raise ValidationError(e.message_dict if hasattr(e, 'message_dict') else str(e))
+        # get_or_create is genuinely idempotent — full_clean() was used
+        # here previously, but its validate_unique() check queries the
+        # DB and raises ValidationError on an existing row BEFORE
+        # save() runs, which meant the intended "second follow = still
+        # 201, no-op" behavior never worked; it 400'd instead. Caught
+        # by test_follow_is_idempotent.
+        Follow.objects.get_or_create(follower=request.user, following=target)
 
         return Response(UserSerializer(target, context={'request': request}).data, status=status.HTTP_201_CREATED)
 

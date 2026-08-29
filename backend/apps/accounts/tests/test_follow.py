@@ -59,9 +59,12 @@ class FollowToggleTests(APITestCase):
         bob_profile = self.client.get(f'/api/users/{self.bob.username}/')
         self.assertEqual(bob_profile.data['follower_count'], 1)
 
+        # Alice followed Bob, so Alice's own following_count is 1 —
+        # viewed here from Bob's session to also confirm the count is
+        # visible correctly to someone other than Alice herself.
         self.client.force_authenticate(user=self.bob)
         alice_seen_by_bob = self.client.get(f'/api/users/{self.alice.username}/')
-        self.assertEqual(alice_seen_by_bob.data['following_count'], 0)  # bob doesn't follow alice
+        self.assertEqual(alice_seen_by_bob.data['following_count'], 1)
 
 
 class FollowersFollowingListTests(APITestCase):
@@ -98,6 +101,10 @@ class UserSearchTests(APITestCase):
         self.assertIn('bob_smith', usernames)
 
     def test_search_matches_display_name_substring(self):
+        # Search as Bob for Alice — UserSearchView excludes the
+        # requesting user from their own results, so Alice searching
+        # for her own display name would never find herself.
+        self.client.force_authenticate(user=self.bob)
         response = self.client.get('/api/users/search/', {'q': 'Wonderland'})
         usernames = {u['username'] for u in response.data}
         self.assertIn('alice', usernames)
