@@ -1,1 +1,0 @@
-pip install django djangorestframework djangorestframework-simplejwt drf-spectacular psycopg2-binary django-cors-headers python-dotenv django-storages boto3 pillow
